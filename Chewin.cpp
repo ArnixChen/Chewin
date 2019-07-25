@@ -119,6 +119,25 @@ uint16_t Chewin::getKeySoundIdx(char key) {
   return 0xFFFF;
 }
 
+char Chewin::getScanCodeFromHID(uint8_t mod, uint8_t hid) {
+  char scanCode;
+#ifdef __SERIAL_DEBUG__
+  Serial.print("hidKey from USB: '");
+  Serial.print(hid);
+  Serial.print("' 0x");
+  Serial.println(hid, HEX);
+#endif
+  for (uint8_t i = 0; i < ROWS; i++) {
+    for (uint8_t j = 0; j < COLS; j++) {
+      scanCode = (((i + 1) << 4) + j + 1);
+      if (hid == getChewinMapEntry(scanCode)->hid_id) {
+        return scanCode;
+      }
+    }
+  }
+  return NO_KEY;
+}
+
 // return true for toneFix success , false for toneFix no match
 bool Chewin::do3SpellToneFix() {
   uint8_t i = 0;

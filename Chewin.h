@@ -108,12 +108,13 @@ class Chewin {
   ~Chewin();
   chewinMapEntry* getChewinMapEntry(char scanCode);
   void begin(uint8_t pinForTx, uint8_t pinForRx);
+  char getScanCodeFromHID(uint8_t mod, uint8_t hid);
   
- protected: 
-  void doHousekeeping();
-  void processScanCode(char scanCode);
-  void processKeyCode(char key, char scanCode);
+  virtual void doHousekeeping();
+  virtual void processScanCode(char scanCode);
+  virtual void processKeyCode(char key, char scanCode);
 
+ protected:
   SoftwareSerial* _mp3Serial = NULL;
   DFPlayerMini_Fast* _mp3Module = NULL;
   
