@@ -19,7 +19,7 @@
    Modified 07-23-2019 by Arnix Chen
 
 */
-#define version "ChewinBox-02a2"
+#define version "ChewinBox-01"
 
 #include <hidboot.h>
 //#include <usbhub.h>
@@ -33,7 +33,21 @@
 #include <SPI.h>
 
 #include <Chewin.h>
-Chewin myChewin;
+class MyChewin: public Chewin {
+ public:
+  void doHousekeeping() {
+    Chewin::doHousekeeping();
+  }
+
+  void processScanCode(char scanCode) {
+    Chewin::processScanCode(scanCode);
+  }
+
+  void processKeyCode(char key, char scanCode) {
+    Chewin::processKeyCode(key, scanCode);
+  }
+};
+MyChewin myChewin;
 
 char getScanCodeFromHID(uint8_t mod, uint8_t hid) {
   char scanCode;
@@ -66,8 +80,7 @@ void KbdRptParser::OnKeyDown(uint8_t mod, uint8_t key) {
     // Let's do works for housekeeping
     myChewin.doHousekeeping();
   } else {
-    if (myChewin.processScanCode(scanCode) == true)
-      myChewin.processKeyCode(myChewin.getChewinMapEntry(scanCode)->ascii, scanCode);
+    myChewin.processScanCode(scanCode);
   }
 }
 
