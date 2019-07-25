@@ -71,32 +71,13 @@ class MyChewin: public Chewin {
 };
 MyChewin myChewin;
 
-char getScanCodeFromHID(uint8_t mod, uint8_t hid) {
-  char scanCode;
-#ifdef __SERIAL_DEBUG__
-  Serial.print("hidKey from USB: '");
-  Serial.print(hid);
-  Serial.print("' 0x");
-  Serial.println(hid, HEX);
-#endif
-  for (uint8_t i = 0; i < ROWS; i++) {
-    for (uint8_t j = 0; j < COLS; j++) {
-      scanCode = (((i + 1) << 4) + j + 1);
-      if (hid == myChewin.getChewinMapEntry(scanCode)->hid_id) {
-        return scanCode;
-      }
-    }
-  }
-  return NO_KEY;
-}
-
 class KbdRptParser : public KeyboardReportParser {
  protected:
   void OnKeyDown	(uint8_t mod, uint8_t key);
 };
 
 void KbdRptParser::OnKeyDown(uint8_t mod, uint8_t key) {
-  char scanCode = getScanCodeFromHID(mod, key);
+  char scanCode = myChewin.getScanCodeFromHID(mod, key);
 
   if (scanCode == NO_KEY) {
     // Let's do works for housekeeping
