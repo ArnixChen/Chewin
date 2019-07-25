@@ -33,40 +33,7 @@
 #include <SPI.h>
 
 #include <Chewin.h>
-class MyChewin: public Chewin {
- public:
-  void doHousekeeping() {
-    Chewin::doHousekeeping();
-  }
-
-  void processScanCode(char scanCode) {
-    Chewin::processScanCode(scanCode);
-  }
-
-  void processKeyCode(char key, char scanCode) {
-    Chewin::processKeyCode(key, scanCode);
-  }
-};
-MyChewin myChewin;
-
-char getScanCodeFromHID(uint8_t mod, uint8_t hid) {
-  char scanCode;
-#ifdef __SERIAL_DEBUG__
-  Serial.print("hidKey from USB: '");
-  Serial.print(hid);
-  Serial.print("' 0x");
-  Serial.println(hid, HEX);
-#endif
-  for (uint8_t i = 0; i < ROWS; i++) {
-    for (uint8_t j = 0; j < COLS; j++) {
-      scanCode = (((i + 1) << 4) + j + 1);
-      if (hid == myChewin.getChewinMapEntry(scanCode)->hid_id) {
-        return scanCode;
-      }
-    }
-  }
-  return NO_KEY;
-}
+Chewin myChewin;
 
 class KbdRptParser : public KeyboardReportParser {
  protected:
@@ -74,7 +41,7 @@ class KbdRptParser : public KeyboardReportParser {
 };
 
 void KbdRptParser::OnKeyDown(uint8_t mod, uint8_t key) {
-  char scanCode = getScanCodeFromHID(mod, key);
+  char scanCode = myChewin.getScanCodeFromHID(mod, key);
 
   if (scanCode == NO_KEY) {
     // Let's do works for housekeeping
