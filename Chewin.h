@@ -106,14 +106,14 @@ class Chewin {
  public:
   Chewin();
   ~Chewin();
-  void begin(uint8_t pinForTx, uint8_t pinForRx);
-
   chewinMapEntry* getChewinMapEntry(char scanCode);
+  void begin(uint8_t pinForTx, uint8_t pinForRx);
+  
+ protected: 
   void doHousekeeping();
-  bool processScanCode(char scanCode);
+  void processScanCode(char scanCode);
   void processKeyCode(char key, char scanCode);
 
- private:
   SoftwareSerial* _mp3Serial = NULL;
   DFPlayerMini_Fast* _mp3Module = NULL;
   
@@ -130,6 +130,7 @@ class Chewin {
   uint8_t spellBufferIdx = 0;
   uint8_t toneFixCounter = 0;
 
+ private:
   bool do3SpellToneFix();
   void saveSentenceToMemoSlot(uint8_t slotIdx);
   void playSentenceFromMemoSlot(uint8_t slotIdx);
