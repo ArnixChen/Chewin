@@ -72,8 +72,6 @@ void setup() {
 
   HidKeyboard.SetReportParser(0, &Prs);
 
-  pinMode(ledPin, OUTPUT);
-
   myChewin.audioInit(3, 2); // pin 3 for DFPlayerMini TX, pin 2 for DFPlayerMini RX
 }
 
