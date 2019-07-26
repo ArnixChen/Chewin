@@ -43,13 +43,7 @@ class KbdRptParser : public KeyboardReportParser {
 
 void KbdRptParser::OnKeyDown(uint8_t mod, uint8_t key) {
   char scanCode = myChewin.getScanCodeFromHID(mod, key);
-
-  if (scanCode == NO_KEY) {
-    // Let's do works for housekeeping
-    myChewin.doHousekeeping();
-  } else {
-    myChewin.processScanCode(scanCode);
-  }
+  myChewin.processScanCode(scanCode);
 }
 
 USB     Usb;
@@ -77,4 +71,5 @@ void setup() {
 
 void loop() {
   Usb.Task();
+  myChewin.doHousekeeping();
 }

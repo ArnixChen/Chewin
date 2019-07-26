@@ -83,15 +83,17 @@ class MyChewin: public Chewin {
 
     switch (scanCode) {
       case 0x53:
-        if (sentenceBufferIdx == 0)
+        if (sentenceBufferIdx == 0) {
+          mp3Module->play(SND_SYSTEM_START);
           break;
+        }
 
         for (int i = 0; i < sentenceBufferIdx; i++) {
 #ifdef __SERIAL_DEBUG__
           Serial.print(sentenceBuffer[i].keys);
           Serial.print(" ");
 #endif
-          _mp3Module->playAndWait(sentenceBuffer[i].sndIndex);
+          mp3Module->playAndWait(sentenceBuffer[i].sndIndex);
         }
 #ifdef __SERIAL_DEBUG__
         Serial.println();
@@ -110,18 +112,13 @@ MyChewin myChewin(7, 10, &myChewinMap[0][0]); // pass customized ChewinMap for i
 
 class KbdRptParser : public KeyboardReportParser {
  protected:
-  void OnKeyDown	(uint8_t mod, uint8_t key);
+  void OnKeyDown  (uint8_t mod, uint8_t key);
 };
 
 void KbdRptParser::OnKeyDown(uint8_t mod, uint8_t key) {
   char scanCode = myChewin.getScanCodeFromHID(mod, key);
 
-  if (scanCode == NO_KEY) {
-    // Let's do works for housekeeping
-    myChewin.doHousekeeping();
-  } else {
-    myChewin.processScanCode(scanCode);
-  }
+  myChewin.processScanCode(scanCode);
 }
 
 USB     Usb;
@@ -149,4 +146,5 @@ void setup() {
 
 void loop() {
   Usb.Task();
+  myChewin.doHousekeeping();
 }
