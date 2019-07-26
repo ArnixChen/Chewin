@@ -86,9 +86,9 @@ uint16_t Chewin::getKeySoundIdx(char key) {
 char Chewin::getScanCodeFromHID(uint8_t mod, uint8_t hid) {
   char scanCode;
 #ifdef __SERIAL_DEBUG__
-  Serial.print("hidKey from USB: '");
+  Serial.print(F("hidKey from USB: '"));
   Serial.print(hid);
-  Serial.print("' 0x");
+  Serial.print(F("' 0x"));
   Serial.println(hid, HEX);
 #endif
   for (uint8_t i = 0; i < ROWS; i++) {
@@ -150,7 +150,7 @@ void Chewin::processScanCode(char scanCode) {
     case 0x65:  // '>'
       currVolume = _mp3Module->volumeUp();
 #ifdef __SERIAL_DEBUG__
-      Serial.print("vol = ");
+      Serial.print(F("vol = "));
       Serial.println(currVolume);
 #endif
       _mp3Module->play(SND_VOLUME_UP);
@@ -161,7 +161,7 @@ void Chewin::processScanCode(char scanCode) {
     case 0x64:  // '<'
       currVolume = _mp3Module->volumeDown();
 #ifdef __SERIAL_DEBUG__
-      Serial.print("vol = ");
+      Serial.print(F("vol = "));
       Serial.println(currVolume);
 #endif
       _mp3Module->play(SND_VOLUME_DOWN);
@@ -337,14 +337,14 @@ void Chewin::processKeyCode(char key, char scanCode) {
 
 #ifdef __SERIAL_DEBUG_DEEP__
   switch (chewin->keyType) {
-    case KEY_TYPE_A: Serial.println("KEY_TYPE_A"); break;
-    case KEY_TYPE_B: Serial.println("KEY_TYPE_B"); break;
-    case KEY_TYPE_C: Serial.println("KEY_TYPE_C"); break;
-    case KEY_TYPE_D: Serial.println("KEY_TYPE_D"); break;
-    case KEY_TYPE_E: Serial.println("KEY_TYPE_E"); break;
-    case KEY_TYPE_F: Serial.println("KEY_TYPE_F"); break;
-    case KEY_TYPE_G: Serial.println("KEY_TYPE_G"); break;
-    default: Serial.println("KEY UNKNOWN!!");
+    case KEY_TYPE_A: Serial.println(F("KEY_TYPE_A")); break;
+    case KEY_TYPE_B: Serial.println(F("KEY_TYPE_B")); break;
+    case KEY_TYPE_C: Serial.println(F("KEY_TYPE_C")); break;
+    case KEY_TYPE_D: Serial.println(F("KEY_TYPE_D")); break;
+    case KEY_TYPE_E: Serial.println(F("KEY_TYPE_E")); break;
+    case KEY_TYPE_F: Serial.println(F("KEY_TYPE_F")); break;
+    case KEY_TYPE_G: Serial.println(F("KEY_TYPE_G")); break;
+    default: Serial.println(F("KEY UNKNOWN!!"));
   }
 #endif
 
@@ -431,7 +431,7 @@ void Chewin::processKeyCode(char key, char scanCode) {
 
   if (chewin->keyType != KEY_TYPE_F) {
 #ifdef __SERIAL_DEBUG__
-    Serial.println("keyType != tonekeys --> return");
+    Serial.println(F("keyType != tonekeys --> return"));
 #endif
     return;
   }
@@ -478,7 +478,7 @@ void Chewin::processKeyCode(char key, char scanCode) {
 #ifdef __SERIAL_DEBUG__
     Serial.print(" ");
     Serial.print(sndIdx);
-    Serial.println(".mp3");
+    Serial.println(F(".mp3"));
 #endif
   } else { // If spellList has no such spell
     if (spellBufferIdx > 1)
@@ -494,13 +494,13 @@ void Chewin::processKeyCode(char key, char scanCode) {
   if (key == TONE_KEY3) {
     toneFixCounter++;
 #ifdef __SERIAL_DEBUG__
-    Serial.print("tF Counter++ =>");
+    Serial.print(F("tF Counter++ =>"));
     Serial.println(toneFixCounter);
 #endif
   } else if (key == TONE_KEY1 || key == TONE_KEY2 || key == TONE_KEY4 || key == TONE_KEY5 || key == SILENCE_KEY) {
     toneFixCounter = 0;
 #ifdef __SERIAL_DEBUG__
-    Serial.println("Reset tF Counter!");
+    Serial.println(F("Reset tF Counter!"));
 #endif
   }
 
@@ -514,22 +514,22 @@ void Chewin::processKeyCode(char key, char scanCode) {
   } else if (toneFixCounter == 3) {
     // In such type the General Tone Change Rule can't work properly, we search the tone-change-table to get proper tone change.
 #ifdef __SERIAL_DEBUG__
-    Serial.println("tF Counter==3!");
+    Serial.println(F("tF Counter==3!"));
 #endif
     if (this->do3SpellToneFix() == true) {
 #ifdef __SERIAL_DEBUG_XX__
-      Serial.println("tF Match!");
+      Serial.println(F("tF Match!"));
 #endif
       toneFixCounter = 0;
     } else {
 #ifdef __SERIAL_DEBUG_XX__
-      Serial.println("tF Nothing Matched!");
+      Serial.println(F("tF Nothing Matched!"));
 #endif
       toneFixCounter -= 2;
     }
   }
 #ifdef __SERIAL_DEBUG_XX__
-  Serial.print("tF=");
+  Serial.print(F("tF="));
   Serial.println(toneFixCounter);
 #endif
 }
@@ -548,7 +548,7 @@ void Chewin::saveSentenceToMemoSlot(uint8_t slotIdx) {
   }
   memoSlot.checkSum = (~memoSlot.checkSum) + 1;
 #ifdef __SERIAL_DEBUG_DEEP__
-  Serial.print("checkSum=0x");
+  Serial.print(F("checkSum=0x"));
   Serial.println(memoSlot.checkSum, HEX);
 #endif
 
@@ -570,7 +570,7 @@ void Chewin::playSentenceFromMemoSlot(uint8_t slotIdx) {
   reCalcCheckSum = (~reCalcCheckSum) + 1;
   if (reCalcCheckSum != memoSlot.checkSum) {
 #ifdef __SERIAL_DEBUG_DEEP__
-    Serial.print(":e0x");
+    Serial.print(F(":e0x"));
     Serial.print(memoSlot.checkSum, HEX);
     Serial.print(" ");
 #endif
