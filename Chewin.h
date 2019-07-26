@@ -35,7 +35,6 @@
 #include "quickIndexTable.h"
 #include "toneFixTable.h"
 
-#define ledPin  13
 #define defaultVolume 0x16
 
 #define checkVccPeriod  20000 // unit in mini-second
