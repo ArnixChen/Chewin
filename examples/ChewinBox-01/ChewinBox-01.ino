@@ -33,11 +33,12 @@
 #include <SPI.h>
 
 #include <Chewin.h>
-Chewin myChewin;
+#include <defaultChewinMap.h> // If you want to use your costomized ChewinMap , then you don't have to include this.
+Chewin myChewin(7, 10, &defaultChewinMap[0][0]); // pass default ChewinMap for initializing Chewin object, where 7 for ROWS, 10 for COLS.
 
 class KbdRptParser : public KeyboardReportParser {
  protected:
-  void OnKeyDown	(uint8_t mod, uint8_t key);
+  void OnKeyDown  (uint8_t mod, uint8_t key);
 };
 
 void KbdRptParser::OnKeyDown(uint8_t mod, uint8_t key) {
@@ -73,7 +74,7 @@ void setup() {
 
   pinMode(ledPin, OUTPUT);
 
-  myChewin.begin(3, 2); // pin 3 for DFPlayerMini TX, pin 2 for DFPlayerMini RX
+  myChewin.audioInit(3, 2); // pin 3 for DFPlayerMini TX, pin 2 for DFPlayerMini RX
 }
 
 void loop() {
