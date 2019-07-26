@@ -106,6 +106,7 @@ class Chewin {
   Chewin(uint8_t rows, uint8_t cols, const chewinMapEntry* chewinMap);
   ~Chewin();
   chewinMapEntry* getChewinMapEntry(char scanCode);
+  DFPlayerMini_Fast* mp3Module = NULL;
   void audioInit(uint8_t pinForTx, uint8_t pinForRx);
   char getScanCodeFromHID(uint8_t mod, uint8_t hid);
   
@@ -116,7 +117,6 @@ class Chewin {
  protected:
   uint8_t ROWS, COLS;
   SoftwareSerial* _mp3Serial = NULL;
-  DFPlayerMini_Fast* _mp3Module = NULL;
   const chewinMapEntry* _chewinMap = NULL;
   uint16_t shortCutTableForSound[6][10] = {
     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},

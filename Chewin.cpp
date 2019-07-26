@@ -16,21 +16,21 @@ Chewin::~Chewin() {
     delete _mp3Serial;
   }
 
-  if (_mp3Module != NULL) {
-    delete _mp3Module;
+  if (mp3Module != NULL) {
+    delete mp3Module;
   }
 }
 
 void Chewin::audioInit(uint8_t pinForTx, uint8_t pinForRx) {
   _mp3Serial = new SoftwareSerial(pinForTx, pinForRx);
   _mp3Serial->begin(9600);
-  _mp3Module = new DFPlayerMini_Fast();
-  _mp3Module->begin(* _mp3Serial);
+  mp3Module = new DFPlayerMini_Fast();
+  mp3Module->begin(* _mp3Serial);
 
   restoreFromEEprom();
-  //delay(550);
-  _mp3Module->volume(20);
-  _mp3Module->play(SND_SYSTEM_START);
+  delay(1250);
+  mp3Module->volume(currVolume);
+  mp3Module->play(SND_SYSTEM_START);
 }
 
 /*const char ascIIMap[ROWS][COLS] PROGMEM = {
@@ -149,23 +149,23 @@ void Chewin::processScanCode(char scanCode) {
 
   switch (scanCode) {
     case 0x65:  // '>'
-      currVolume = _mp3Module->volumeUp();
+      currVolume = mp3Module->volumeUp();
 #ifdef __SERIAL_DEBUG__
       Serial.print(F("vol = "));
       Serial.println(currVolume);
 #endif
-      _mp3Module->play(SND_VOLUME_UP);
+      mp3Module->play(SND_VOLUME_UP);
       romUpdateRequestTime = millis();
       romUpdateRequest = true;
       break;
 
     case 0x64:  // '<'
-      currVolume = _mp3Module->volumeDown();
+      currVolume = mp3Module->volumeDown();
 #ifdef __SERIAL_DEBUG__
       Serial.print(F("vol = "));
       Serial.println(currVolume);
 #endif
-      _mp3Module->play(SND_VOLUME_DOWN);
+      mp3Module->play(SND_VOLUME_DOWN);
       romUpdateRequestTime = millis();
       romUpdateRequest = true;
       break;
@@ -177,7 +177,7 @@ void Chewin::processScanCode(char scanCode) {
       sentenceBufferIdx = 0;
       spellBufferIdx = 0;
       toneFixCounter = 0;
-      _mp3Module->play(SND_SENTENCE_RESTART);
+      mp3Module->play(SND_SENTENCE_RESTART);
 #ifdef __SERIAL_DEBUG__
       Serial.println(F("\nReset sentence buffer and spell buffer!"));
 #endif
@@ -195,7 +195,7 @@ void Chewin::processScanCode(char scanCode) {
         Serial.print(sentenceBuffer[i].keys);
         Serial.print(" ");
 #endif
-        _mp3Module->playAndWait(sentenceBuffer[i].sndIndex);
+        mp3Module->playAndWait(sentenceBuffer[i].sndIndex);
       }
 #ifdef __SERIAL_DEBUG__
       Serial.println();
@@ -210,10 +210,10 @@ void Chewin::processScanCode(char scanCode) {
       if (toneFixCounter > 0) {
         toneFixCounter--;
       }
-      _mp3Module->playAndWait(SND_SENTENCE_DEL);
+      mp3Module->playAndWait(SND_SENTENCE_DEL);
       delay(300);
       for (int i = 0; i < sentenceBufferIdx; i++) {
-        _mp3Module->playAndWait(sentenceBuffer[i].sndIndex);
+        mp3Module->playAndWait(sentenceBuffer[i].sndIndex);
       }
       break;
 
@@ -222,7 +222,7 @@ void Chewin::processScanCode(char scanCode) {
         // We should not save sentence to memo slot if sentenceBuffer is empty
         break;
       }
-      _mp3Module->play(SND_SENTENCE_MEMORIZE);
+      mp3Module->play(SND_SENTENCE_MEMORIZE);
 #ifdef __SERIAL_DEBUG__
       Serial.print(F("\nDump spell buffer: "));
       Serial.println(spellBuffer);
@@ -289,7 +289,7 @@ void Chewin::processScanCode(char scanCode) {
             case 8: sndIdx = chewinStartNumber + 37; break;
             case 9: sndIdx = chewinStartNumber + 793; break;
           }
-          _mp3Module->playAndWait(sndIdx);
+          mp3Module->playAndWait(sndIdx);
         }
       }
       break;
@@ -357,7 +357,7 @@ void Chewin::processKeyCode(char key, char scanCode) {
   if (chewin->keyType != KEY_TYPE_F) {
     sndIdx = getKeySoundIdx(key);
     if (sndIdx != 0xFFFF) {
-      _mp3Module->play(sndIdx);
+      mp3Module->play(sndIdx);
     }
   }
   // End of play key sound
@@ -414,7 +414,7 @@ void Chewin::processKeyCode(char key, char scanCode) {
           prevKeyType = chewin->keyType;
         } else {
           if (prevKeyType == KEY_TYPE_D && chewin->keyType == KEY_TYPE_C) {
-            _mp3Module->play(SND_SPELL_ILLEGAL);
+            mp3Module->play(SND_SPELL_ILLEGAL);
             spellBufferIdx = 0;
             // Illegal spell sequence
 #ifdef __SERIAL_DEBUG__
@@ -461,7 +461,7 @@ void Chewin::processKeyCode(char key, char scanCode) {
 #endif
 
   if (sndIdx != 0xFFFF) { // If spellList has this spell
-    _mp3Module->playAndWait(sndIdx);
+    mp3Module->playAndWait(sndIdx);
 
     if (sentenceBufferIdx < sentenceBufferSize) {
       if (key == SILENCE_KEY) {
@@ -483,7 +483,7 @@ void Chewin::processKeyCode(char key, char scanCode) {
 #endif
   } else { // If spellList has no such spell
     if (spellBufferIdx > 1)
-      _mp3Module->play(SND_SPELL_SOUND_NOT_PREPARED);
+      mp3Module->play(SND_SPELL_SOUND_NOT_PREPARED);
 #ifdef __SERIAL_DEBUG__
     Serial.println(F(" nothing matched!!"));
 #endif
@@ -579,7 +579,7 @@ void Chewin::playSentenceFromMemoSlot(uint8_t slotIdx) {
   }
 
   for (uint8_t i = 0; i < memoSlot.length; i++) {
-    _mp3Module->playAndWait(memoSlot.sndIndex[i]);
+    mp3Module->playAndWait(memoSlot.sndIndex[i]);
   }
 }
 
@@ -590,6 +590,7 @@ void Chewin::updateEEprom() {
   header.mode = currMode;
   header.checkSum = (~(header.volume + header.mode)) + 1; // 2's Complement
   EEPROM.put(0, header);
+  delay(100);
 
 #ifdef __SERIAL_DEBUG__
   Serial.println(F("upEEprom(): Done!"));
@@ -637,7 +638,7 @@ void Chewin::doHousekeeping() {
   if ((currTime - prevCheckVccTime) > checkVccPeriod) {
     vbat = readVBat();
 
-    if (vbat < batteryVoltageLowThreshold) _mp3Module->playAndWait(SND_IT_NEEDS_CHARGING);
+    if (vbat < batteryVoltageLowThreshold) mp3Module->playAndWait(SND_IT_NEEDS_CHARGING);
     prevCheckVccTime = currTime;
   }
 }
