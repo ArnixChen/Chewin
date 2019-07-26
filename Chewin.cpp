@@ -27,9 +27,10 @@ void Chewin::audioInit(uint8_t pinForTx, uint8_t pinForRx) {
   _mp3Module = new DFPlayerMini_Fast();
   _mp3Module->begin(* _mp3Serial);
 
+  restoreFromEEprom();
   //delay(550);
   _mp3Module->volume(20);
-  _mp3Module->play(1);
+  _mp3Module->play(SND_SYSTEM_START);
 }
 
 /*const char ascIIMap[ROWS][COLS] PROGMEM = {
