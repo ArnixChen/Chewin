@@ -22,8 +22,8 @@
 #define memoSlotSize 10
 #define spellBufferSize 5
 #define chewinStartNumber  12
-#define ROWS 7           //number of rows of keypad
-#define COLS 10          //number of columns of keypad
+//#define ROWS 7           //number of rows of keypad
+//#define COLS 10          //number of columns of keypad
 
 #include <Arduino.h>
 #include <avr/pgmspace.h>
@@ -104,10 +104,10 @@ typedef struct {
 
 class Chewin {
  public:
-  Chewin();
+  Chewin(uint8_t rows, uint8_t cols, const chewinMapEntry* chewinMap);
   ~Chewin();
   chewinMapEntry* getChewinMapEntry(char scanCode);
-  void begin(uint8_t pinForTx, uint8_t pinForRx);
+  void audioInit(uint8_t pinForTx, uint8_t pinForRx);
   char getScanCodeFromHID(uint8_t mod, uint8_t hid);
   
   virtual void doHousekeeping();
@@ -115,8 +115,18 @@ class Chewin {
   virtual void processKeyCode(char key, char scanCode);
 
  protected:
+  uint8_t ROWS, COLS;
   SoftwareSerial* _mp3Serial = NULL;
   DFPlayerMini_Fast* _mp3Module = NULL;
+  const chewinMapEntry* _chewinMap = NULL;
+  uint16_t shortCutTableForSound[6][10] = {
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+    {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF},
+    {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF},
+  };
   
   bool romUpdateRequest = false;
   uint16_t memoSlotUpdateRequest = 0;
