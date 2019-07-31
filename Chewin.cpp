@@ -2,12 +2,40 @@
 #include "readVcc.h"
 #include <SoftwareSerial.h>
 
-//#define __SERIAL_DEBUG__
+#define __SERIAL_DEBUG__
+
+uint16_t shortCutTableForSound[6][10] = {
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF},
+  {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF},
+};
+
+/*const char ascIIMap[ROWS][COLS] PROGMEM = {
+  {'1', '2', TONE_KEY3, TONE_KEY4, '5', TONE_KEY2, TONE_KEY5, '8', '9', '0'},
+  {'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'},
+  {'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';'},
+  {'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/'},
+  {'!', '@', '#', '$', '%', '^', '&', '*', '(', ')'},
+  {'~', '{', '}', '[', ']', '\\', '-', TONE_KEY1, '<', '>'},
+  {SILENCE_KEY,  0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0},
+  };*/
+
+Chewin::Chewin(uint8_t rows, uint8_t cols, const chewinMapEntry* chewinMap, uint16_t battLowThreshold) {
+  ROWS = rows;
+  COLS = cols;
+  _chewinMap = chewinMap;
+  batteryLowThreshold = battLowThreshold;
+  updateShortCutTable();
+}
 
 Chewin::Chewin(uint8_t rows, uint8_t cols, const chewinMapEntry* chewinMap) {
   ROWS = rows;
   COLS = cols;
   _chewinMap = chewinMap;
+  batteryLowThreshold = defaultBatteryLowThreshold;
   updateShortCutTable();
 }
 
@@ -32,16 +60,6 @@ void Chewin::audioInit(uint8_t pinForTx, uint8_t pinForRx) {
   mp3Module->volume(currVolume);
   mp3Module->play(SND_SYSTEM_START);
 }
-
-/*const char ascIIMap[ROWS][COLS] PROGMEM = {
-  {'1', '2', TONE_KEY3, TONE_KEY4, '5', TONE_KEY2, TONE_KEY5, '8', '9', '0'},
-  {'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'},
-  {'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';'},
-  {'z', 'x', 'c', 'v', 'b', 'n', 'm', ',', '.', '/'},
-  {'!', '@', '#', '$', '%', '^', '&', '*', '(', ')'},
-  {'~', '{', '}', '[', ']', '\\', '-', TONE_KEY1, '<', '>'},
-  {SILENCE_KEY,  0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0},
-  };*/
 
 chewinMapEntry* Chewin::getChewinMapEntry(char scanCode) {
   uint8_t row;
@@ -87,9 +105,7 @@ uint16_t Chewin::getKeySoundIdx(char key) {
 char Chewin::getScanCodeFromHID(uint8_t mod, uint8_t hid) {
   char scanCode;
 #ifdef __SERIAL_DEBUG__
-  Serial.print(F("hidKey from USB: '"));
-  Serial.print(hid);
-  Serial.print(F("' 0x"));
+  Serial.print(F("hidKey from USB: 0x"));
   Serial.println(hid, HEX);
 #endif
   for (uint8_t i = 0; i < ROWS; i++) {
@@ -122,7 +138,7 @@ bool Chewin::do3SpellToneFix() {
         strcpy(sentenceBuffer[sentenceBufferIdx - 3 + j].keys, toneFixEntryBuffer.fixed[j].keys);
         sentenceBuffer[sentenceBufferIdx - 3 + j].sndIndex += toneFixEntryBuffer.diff[j];
       }
-#ifdef __SERIAL_DEBUG__
+#ifdef __SERIAL_DEBUG_XX__
       Serial.println(F("\nTone fixed by table\n"));
 #endif
       return true;
@@ -304,14 +320,8 @@ void Chewin::processScanCode(char scanCode) {
   static chewinMapEntry * chewin;
   chewin = getChewinMapEntry(scanCode);
   if (chewin != NULL) {
-    Serial.print(chewin->symbol);
+    Serial.println(chewin->symbol);
   }
-
-  Serial.print(F(" scanCode=0x"));
-  Serial.print(scanCode, HEX);
-  Serial.print(F(" prevScanCode=0x"));
-  Serial.println(prevScanCode, HEX);
-
 #endif
   if (result == true)
     processKeyCode(getChewinMapEntry(scanCode)->ascii, scanCode);
@@ -378,7 +388,7 @@ void Chewin::processKeyCode(char key, char scanCode) {
     case KEY_TYPE_B:
     case KEY_TYPE_E:  // ㄦ
       resetSpellBuffer;
-#ifdef __SERIAL_DEBUG__
+#ifdef __SERIAL_DEBUG_XX__
       Serial.print(F("set firstScanCode=0x")); \
       Serial.println(firstScanCode, HEX);
 #endif
@@ -401,7 +411,7 @@ void Chewin::processKeyCode(char key, char scanCode) {
     default:
       if (spellBufferIdx == 0) {
         resetSpellBuffer;
-#ifdef __SERIAL_DEBUG__
+#ifdef __SERIAL_DEBUG_XX__
         Serial.print(F("set firstScanCode=0x")); \
         Serial.println(firstScanCode, HEX);
 #endif
@@ -431,7 +441,7 @@ void Chewin::processKeyCode(char key, char scanCode) {
   } // End of switch
 
   if (chewin->keyType != KEY_TYPE_F) {
-#ifdef __SERIAL_DEBUG__
+#ifdef __SERIAL_DEBUG_XX__
     Serial.println(F("keyType != tonekeys --> return"));
 #endif
     return;
@@ -484,7 +494,7 @@ void Chewin::processKeyCode(char key, char scanCode) {
   } else { // If spellList has no such spell
     if (spellBufferIdx > 1)
       mp3Module->play(SND_SPELL_SOUND_NOT_PREPARED);
-#ifdef __SERIAL_DEBUG__
+#ifdef __SERIAL_DEBUG_XX__
     Serial.println(F(" nothing matched!!"));
 #endif
   } // End of if (sndIdx != 0xFFFF)
@@ -494,13 +504,13 @@ void Chewin::processKeyCode(char key, char scanCode) {
 
   if (key == TONE_KEY3) {
     toneFixCounter++;
-#ifdef __SERIAL_DEBUG__
+#ifdef __SERIAL_DEBUG_XX__
     Serial.print(F("tF Counter++ =>"));
     Serial.println(toneFixCounter);
 #endif
   } else if (key == TONE_KEY1 || key == TONE_KEY2 || key == TONE_KEY4 || key == TONE_KEY5 || key == SILENCE_KEY) {
     toneFixCounter = 0;
-#ifdef __SERIAL_DEBUG__
+#ifdef __SERIAL_DEBUG_XX__
     Serial.println(F("Reset tF Counter!"));
 #endif
   }
@@ -514,7 +524,7 @@ void Chewin::processKeyCode(char key, char scanCode) {
     sentenceBuffer[sentenceBufferIdx - 2].sndIndex--;
   } else if (toneFixCounter == 3) {
     // In such type the General Tone Change Rule can't work properly, we search the tone-change-table to get proper tone change.
-#ifdef __SERIAL_DEBUG__
+#ifdef __SERIAL_DEBUG_XX__
     Serial.println(F("tF Counter==3!"));
 #endif
     if (this->do3SpellToneFix() == true) {
@@ -592,7 +602,7 @@ void Chewin::updateEEprom() {
   EEPROM.put(0, header);
   delay(100);
 
-#ifdef __SERIAL_DEBUG__
+#ifdef __SERIAL_DEBUG_XX__
   Serial.println(F("upEEprom(): Done!"));
 #endif
   romUpdateRequest = false;
@@ -608,14 +618,14 @@ void Chewin::restoreFromEEprom() {
     currVolume = header.volume;
     currMode = header.mode;
 
-#ifdef __SERIAL_DEBUG__
+#ifdef __SERIAL_DEBUG_XX__
     Serial.println(F("\nresEEprom(): Done!"));
     Serial.println(currVolume);
 #endif
   } else {
     // report eeprom has error
     currVolume = defaultVolume;
-#ifdef __SERIAL_DEBUG__
+#ifdef __SERIAL_DEBUG_XX__
     Serial.println(F("\nEEprom failed!!"));
     Serial.print(F(" checksum= 0x"));
     Serial.print(header.checkSum, HEX);
@@ -638,7 +648,7 @@ void Chewin::doHousekeeping() {
   if ((currTime - prevCheckVccTime) > checkVccPeriod) {
     vbat = readVBat();
 
-    if (vbat < batteryVoltageLowThreshold) mp3Module->playAndWait(SND_IT_NEEDS_CHARGING);
+    if (vbat < batteryLowThreshold) mp3Module->playAndWait(SND_IT_NEEDS_CHARGING);
     prevCheckVccTime = currTime;
   }
 }
@@ -649,7 +659,7 @@ void Chewin::updateShortCutTable() {
   uint8_t idx = 0;
   char key;
   quickEntry currEntry;
-#ifdef __SERIAL_DEBUG__
+#ifdef __SERIAL_DEBUG_XX__
   Serial.println(F("updateShortCutTable"));
 #endif
 
@@ -710,7 +720,7 @@ void Chewin::updateShortCutTable() {
     idx++;
   } while (currEntry.index != 0);
 
-#ifdef __SERIAL_DEBUG__
+#ifdef __SERIAL_DEBUG_XX__
   Serial.println(F("\nshortCutTable = {"));
   for (row = 0; row < ROWS; row++) {
     Serial.print(F("  {"));
@@ -735,7 +745,7 @@ uint16_t Chewin::getSpellSoundIdx(char * keys, char firstScanCode) {
 
   shortCut = shortCutTableForSound[row - 1][col - 1];
   if (shortCut != 0 && shortCut != 0xFFFF) {
-#ifdef __SERIAL_DEBUG__
+#ifdef __SERIAL_DEBUG_XX__
     Serial.print(F(" Found short cut for "));
     Serial.print(keys);
     Serial.print(F(" shortCutIndex="));

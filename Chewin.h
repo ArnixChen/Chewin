@@ -19,7 +19,6 @@
 #define __CHEWIN__
 
 #define sentenceBufferSize 48
-#define memoSlotSize 10
 #define spellBufferSize 5
 #define chewinStartNumber  12
 //#define ROWS 7           //number of rows of keypad
@@ -39,7 +38,7 @@
 
 #define checkVccPeriod  20000 // unit in mini-second
 #define ledBlinkPeriod  1000  // unit in mini-second
-#define batteryVoltageLowThreshold 3650 // unit in mini-volt
+#define defaultBatteryLowThreshold 3650 // unit in mini-volt
 
 // EEPROM will be updated after romUpdateRequestDelay time
 #define romUpdateRequestDelay 500 // unit in mili-second
@@ -103,6 +102,7 @@ typedef struct {
 
 class Chewin {
  public:
+  Chewin(uint8_t rows, uint8_t cols, const chewinMapEntry* chewinMap, uint16_t battLowThreshold);
   Chewin(uint8_t rows, uint8_t cols, const chewinMapEntry* chewinMap);
   ~Chewin();
   chewinMapEntry* getChewinMapEntry(char scanCode);
@@ -110,22 +110,14 @@ class Chewin {
   void audioInit(uint8_t pinForTx, uint8_t pinForRx);
   char getScanCodeFromHID(uint8_t mod, uint8_t hid);
   
-  virtual void doHousekeeping();
-  virtual void processScanCode(char scanCode);
-  virtual void processKeyCode(char key, char scanCode);
+  void doHousekeeping();
+  void processScanCode(char scanCode);
+  void processKeyCode(char key, char scanCode);
 
  protected:
   uint8_t ROWS, COLS;
   SoftwareSerial* _mp3Serial = NULL;
   const chewinMapEntry* _chewinMap = NULL;
-  uint16_t shortCutTableForSound[6][10] = {
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-    {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF},
-    {0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF},
-  };
   
   bool romUpdateRequest = false;
   uint16_t memoSlotUpdateRequest = 0;
@@ -139,6 +131,7 @@ class Chewin {
   char spellBuffer[spellBufferSize];
   uint8_t spellBufferIdx = 0;
   uint8_t toneFixCounter = 0;
+  uint16_t batteryLowThreshold = defaultBatteryLowThreshold;
 
  private:
   bool do3SpellToneFix();
