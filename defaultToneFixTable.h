@@ -18,12 +18,6 @@
 #ifndef __TONE_FIX_TABLE__
 #define __TONE_FIX_TABLE__
 
-typedef struct {
-  spell origin[3];
-  spell fixed[3];
-  int8_t diff[3];
-} toneFixEntry;
-
 #define TONE_FIX_ENTRY  (const toneFixEntry PROGMEM)
 
 const toneFixEntry toneFixTable[] PROGMEM = {
@@ -75,6 +69,12 @@ const toneFixEntry toneFixTable[] PROGMEM = {
   TONE_FIX_ENTRY {{"ul6", "-3", "2ji3"}, {"ul6", "-3", "2ji7"}, {0, 0, 2}}, // 咬耳朵
   TONE_FIX_ENTRY {{"ji6", "53", "u.3"}, {"ji3", "56", "u.3"}, {1, -1, 0}}, // 我只有
   TONE_FIX_ENTRY {{"ji6", "u,3", "u.3"}, {"ji3", "u,6", "u.3"}, {1, -1, 0}}, // 我也有
+  TONE_FIX_ENTRY {{"ji6", "cp3", "cl3"}, {"ji3", "cp6", "cl3"}, {1, -1, 0}}, // 我很好
+  TONE_FIX_ENTRY {{"ji6", "cp3", "vu;3"}, {"ji3", "cp6", "vu;3"}, {1, -1, 0}}, // 我很想
+  TONE_FIX_ENTRY {{"ji6", "dk3", "u3"}, {"ji3", "dk6", "u3"}, {1, -1, 0}}, // 我可以
+  TONE_FIX_ENTRY {{"su6", "cp3", "cl3"}, {"su3", "cp6", "cl3"}, {1, -1, 0}}, // 你很好
+  TONE_FIX_ENTRY {{"su6", "cp3", "vu;3"}, {"su3", "cp6", "vu;3"}, {1, -1, 0}}, // 你很想
+  TONE_FIX_ENTRY {{"su6", "dk3", "u3"}, {"su3", "dk6", "u3"}, {1, -1, 0}}, // 你可以
 
   TONE_FIX_ENTRY { {"", "", ""}, {"", "", ""}}, // dummy entry
 };

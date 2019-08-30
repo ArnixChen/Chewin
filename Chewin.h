@@ -30,10 +30,6 @@
 #include <SoftwareSerial.h>
 #include <DFPlayerMini_Fast.h>
 
-#include "spellList.h"
-#include "quickIndexTable.h"
-#include "toneFixTable.h"
-
 #define defaultVolume 0x16
 
 #define checkVccPeriod  20000 // unit in mini-second
@@ -73,6 +69,29 @@
 #define KEY_TYPE_E 0x10 // ㄦ
 #define KEY_TYPE_F 0x20 // [ ˊˇˋ˙ =]
 #define KEY_TYPE_G 0x40 // Function Keys
+
+// A spell(word) is formed of a series of chewin notes.
+typedef struct {
+  char keys[spellBufferSize];
+} spell;
+
+extern const spell spellList[] PROGMEM;
+
+// Quick index entry for speedup pronounce file searching
+typedef struct {
+  uint16_t index;
+  char key;
+} quickEntry;
+
+extern const quickEntry quickIndex[] PROGMEM;
+
+typedef struct {
+  spell origin[3];
+  spell fixed[3];
+  int8_t diff[3];
+} toneFixEntry;
+
+extern const toneFixEntry toneFixTable[] PROGMEM;
 
 typedef struct {
   char symbol[4]; // unicode of chewin symbol
