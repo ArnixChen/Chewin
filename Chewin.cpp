@@ -2,7 +2,7 @@
 #include "readVcc.h"
 #include <SoftwareSerial.h>
 
-#define __SERIAL_DEBUG__
+//#define __SERIAL_DEBUG__
 
 uint16_t shortCutTableForSound[6][10] = {
   {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -292,19 +292,26 @@ void Chewin::processScanCode(char scanCode) {
             case 3: div = 1; break;
           }
           value = (vbat / div) % 10;
-
+#ifdef  __SERIAL_DEBUG__
+          Serial.print(F("value="));
+          Serial.println(value);
+#endif
           switch (value) {
-            case 0: sndIdx = chewinStartNumber + 531; break;
-            case 1: sndIdx = chewinStartNumber + 1389; break;
-            case 2: sndIdx = chewinStartNumber + 1388; break;
-            case 3: sndIdx = chewinStartNumber + 1309; break;
-            case 4: sndIdx = chewinStartNumber + 1290; break;
-            case 5: sndIdx = chewinStartNumber + 1432; break;
-            case 6: sndIdx = chewinStartNumber + 519; break;
-            case 7: sndIdx = chewinStartNumber + 829; break;
-            case 8: sndIdx = chewinStartNumber + 37; break;
-            case 9: sndIdx = chewinStartNumber + 793; break;
+            case 0: sndIdx = SND_NO_ZERO; break;
+            case 1: sndIdx = SND_NO_ONE; break;
+            case 2: sndIdx = SND_NO_TWO; break;
+            case 3: sndIdx = SND_NO_THREE; break;
+            case 4: sndIdx = SND_NO_FOUR; break;
+            case 5: sndIdx = SND_NO_FIVE; break;
+            case 6: sndIdx = SND_NO_SIX; break;
+            case 7: sndIdx = SND_NO_SEVEN; break;
+            case 8: sndIdx = SND_NO_EIGHT; break;
+            case 9: sndIdx = SND_NO_NINE; break;
           }
+#ifdef  __SERIAL_DEBUG__
+          Serial.print(F("sndIdx="));
+          Serial.println(sndIdx);
+#endif
           mp3Module->playAndWait(sndIdx);
         }
       }
@@ -750,6 +757,8 @@ uint16_t Chewin::getSpellSoundIdx(char * keys, char firstScanCode) {
     Serial.print(keys);
     Serial.print(F(" shortCutIndex="));
     Serial.println(shortCut);
+    Serial.print("chewinStartNumber=");
+    Serial.println(chewinStartNumber);
 #endif
     i = shortCut - chewinStartNumber;
   }

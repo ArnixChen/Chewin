@@ -20,7 +20,7 @@
 
 #define sentenceBufferSize 48
 #define spellBufferSize 5
-#define chewinStartNumber  12
+#define chewinStartNumber  23
 //#define ROWS 7           //number of rows of keypad
 //#define COLS 10          //number of columns of keypad
 
@@ -33,7 +33,6 @@
 #define defaultVolume 0x16
 
 #define checkVccPeriod  20000 // unit in mini-second
-#define ledBlinkPeriod  1000  // unit in mini-second
 #define defaultBatteryLowThreshold 3650 // unit in mini-volt
 
 // EEPROM will be updated after romUpdateRequestDelay time
@@ -50,6 +49,17 @@
 #define SND_SPELL_ILLEGAL 9
 #define SND_IT_NEEDS_CHARGING 10
 #define SND_SILENCE 11
+#define SND_NO_ZERO 12
+#define SND_NO_ONE 13
+#define SND_NO_TWO 14
+#define SND_NO_THREE 15
+#define SND_NO_FOUR 16
+#define SND_NO_FIVE 17
+#define SND_NO_SIX 18
+#define SND_NO_SEVEN 19
+#define SND_NO_EIGHT 20
+#define SND_NO_NINE 21
+#define SND_NO_TEN 22
 
 #define TONE_KEY1 ' '
 #define TONE_KEY2 '6'
@@ -63,7 +73,7 @@
 #endif
 
 #define KEY_TYPE_A 0x01 // ㄅ ~ ㄙ
-#define KEY_TYPE_B 0x02 // Reserved 
+#define KEY_TYPE_B 0x02 // Reserved
 #define KEY_TYPE_C 0x04 // ㄧ ㄨ ㄩ
 #define KEY_TYPE_D 0x08 // ㄚ ~ ㄥ
 #define KEY_TYPE_E 0x10 // ㄦ
@@ -128,7 +138,7 @@ class Chewin {
   DFPlayerMini_Fast* mp3Module = NULL;
   void audioInit(uint8_t pinForTx, uint8_t pinForRx);
   char getScanCodeFromHID(uint8_t mod, uint8_t hid);
-  
+
   void doHousekeeping();
   void processScanCode(char scanCode);
   void processKeyCode(char key, char scanCode);
@@ -137,7 +147,7 @@ class Chewin {
   uint8_t ROWS, COLS;
   SoftwareSerial* _mp3Serial = NULL;
   const chewinMapEntry* _chewinMap = NULL;
-  
+
   bool romUpdateRequest = false;
   uint16_t memoSlotUpdateRequest = 0;
   unsigned long romUpdateRequestTime = 0;
