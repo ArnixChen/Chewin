@@ -20,7 +20,7 @@
 
 #define sentenceBufferSize 48
 #define spellBufferSize 5
-#define chewinStartNumber  23
+#define chewinStartNumber  31
 //#define ROWS 7           //number of rows of keypad
 //#define COLS 10          //number of columns of keypad
 
@@ -60,6 +60,14 @@
 #define SND_NO_EIGHT 20
 #define SND_NO_NINE 21
 #define SND_NO_TEN 22
+#define SND_NO_CLICK 23
+#define SND_NO_DRIP 24
+#define SND_NO_GLASS 25
+#define SND_NO_MESSAGE 26
+#define SND_NO_BUTTON_PRESSED 27
+#define SND_NO_DIALOG_INFO 28
+#define SND_NO_SYSTEM_READY 29
+#define SND_NO_LOGOUT 30
 
 #define TONE_KEY1 ' '
 #define TONE_KEY2 '6'

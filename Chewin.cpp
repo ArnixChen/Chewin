@@ -168,6 +168,7 @@ void Chewin::processScanCode(char scanCode) {
       if ((prevScanCode != 0x68) && (spellBufferIdx == 0) && (sentenceBufferIdx != 0)) {
         if (sentenceBufferIdx < sentenceBufferSize) {
           if (sentenceBuffer[sentenceBufferIdx-1].keys[0] != TONE_KEY1) {
+            mp3Module->play(SND_NO_CLICK);
             sentenceBuffer[sentenceBufferIdx].keys[0] = TONE_KEY1;
             sentenceBuffer[sentenceBufferIdx].keys[1] = 0x0;
             sentenceBuffer[sentenceBufferIdx++].sndIndex = SND_SILENCE;
@@ -316,6 +317,7 @@ void Chewin::processScanCode(char scanCode) {
     case 0x13: // Read current voltage
       result = true;
       if (prevScanCode == 0x63) {
+        mp3Module->stop();
         result = false;
         uint16_t vbat = readVBat();
         uint8_t value = 0;
@@ -364,6 +366,11 @@ void Chewin::processScanCode(char scanCode) {
         // MemoKey blocked mode switching
         result = false;
         memoKeyBlocked = (memoKeyBlocked) ? false : true;
+        if (memoKeyBlocked) {
+          mp3Module->play(SND_NO_DRIP);
+        } else {
+          mp3Module->play(SND_NO_GLASS);
+        }
         romUpdateRequestTime = millis();
         romUpdateRequest = true;
       }
@@ -375,6 +382,11 @@ void Chewin::processScanCode(char scanCode) {
         // VolumeKey locked mode switching
         result = false;
         volumeKeyLocked = (volumeKeyLocked) ? false : true;
+        if (volumeKeyLocked) {
+          mp3Module->play(SND_NO_DRIP);
+        } else {
+          mp3Module->play(SND_NO_GLASS);
+        }
         romUpdateRequestTime = millis();
         romUpdateRequest = true;
       }
@@ -386,6 +398,11 @@ void Chewin::processScanCode(char scanCode) {
         // twice Mute enabled switching
         result = false;
         twiceMuteEnabled = (twiceMuteEnabled) ? false : true;
+        if (twiceMuteEnabled) {
+          mp3Module->play(SND_NO_DRIP);
+        } else {
+          mp3Module->play(SND_NO_GLASS);
+        }
         romUpdateRequestTime = millis();
         romUpdateRequest = true;
       }
