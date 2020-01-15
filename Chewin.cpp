@@ -164,6 +164,21 @@ void Chewin::processScanCode(char scanCode) {
   bool result = false;
 
   switch (scanCode) {
+    case 0x68: // Press spacebar key to add silence
+      if ((prevScanCode != 0x68) && (spellBufferIdx == 0) && (sentenceBufferIdx != 0)) {
+        if (sentenceBufferIdx < sentenceBufferSize) {
+          if (sentenceBuffer[sentenceBufferIdx-1].keys[0] != TONE_KEY1) {
+            sentenceBuffer[sentenceBufferIdx].keys[0] = TONE_KEY1;
+            sentenceBuffer[sentenceBufferIdx].keys[1] = 0x0;
+            sentenceBuffer[sentenceBufferIdx++].sndIndex = SND_SILENCE;
+            result = false;
+          }
+        }
+      } else {
+        result = true;
+      }
+      break;
+  
     case 0x65:  // '>'
       if (volumeKeyLocked) {
       } else {
