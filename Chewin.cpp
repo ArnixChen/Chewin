@@ -450,7 +450,10 @@ void Chewin::processKeyCode(char key, char scanCode) {
     sndIdx = getKeySoundIdx(key);
     if (sndIdx != 0xFFFF) {
       if (twiceMuteEnabled) {
-        if (key != prevKey) { // Check here to prevent hitting the same key repeatly
+        // Check here to prevent hitting the same key repeatly
+        if (key == prevKey && spellBufferIdx > 0) {
+          
+        } else {
           mp3Module->play(sndIdx);
           prevKey = key;
         }
