@@ -165,25 +165,31 @@ void Chewin::processScanCode(char scanCode) {
 
   switch (scanCode) {
     case 0x65:  // '>'
-      currVolume = mp3Module->volumeUp();
+      if (volumeKeyLocked) {
+      } else {
+        currVolume = mp3Module->volumeUp();
 #ifdef __SERIAL_DEBUG__
-      Serial.print(F("vol = "));
-      Serial.println(currVolume);
+        Serial.print(F("vol = "));
+        Serial.println(currVolume);
 #endif
-      mp3Module->play(SND_VOLUME_UP);
-      romUpdateRequestTime = millis();
-      romUpdateRequest = true;
+        mp3Module->play(SND_VOLUME_UP);
+        romUpdateRequestTime = millis();
+        romUpdateRequest = true;
+      }
       break;
 
     case 0x64:  // '<'
-      currVolume = mp3Module->volumeDown();
+      if (volumeKeyLocked) {
+      } else {
+        currVolume = mp3Module->volumeDown();
 #ifdef __SERIAL_DEBUG__
-      Serial.print(F("vol = "));
-      Serial.println(currVolume);
+        Serial.print(F("vol = "));
+        Serial.println(currVolume);
 #endif
-      mp3Module->play(SND_VOLUME_DOWN);
-      romUpdateRequestTime = millis();
-      romUpdateRequest = true;
+        mp3Module->play(SND_VOLUME_DOWN);
+        romUpdateRequestTime = millis();
+        romUpdateRequest = true;
+      }
       break;
 
     case 0x61: // Reset sentence buffer;
@@ -343,6 +349,17 @@ void Chewin::processScanCode(char scanCode) {
         // MemoKey blocked mode switching
         result = false;
         memoKeyBlocked = (memoKeyBlocked) ? false : true;
+        romUpdateRequestTime = millis();
+        romUpdateRequest = true;
+      }
+      break;
+
+    case 0x16:
+      result = true;
+      if (prevScanCode == 0x63) {
+        // VolumeKey locked mode switching
+        result = false;
+        volumeKeyLocked = (volumeKeyLocked) ? false : true;
         romUpdateRequestTime = millis();
         romUpdateRequest = true;
       }
@@ -637,7 +654,8 @@ void Chewin::updateEEprom() {
   header.volume = currVolume;
   header.mode = currMode;
   header.memoKeyBlocked = memoKeyBlocked;
-  header.checkSum = (~(header.volume + header.mode + header.memoKeyBlocked)) + 1; // 2's Complement
+  header.volumeKeyLocked = volumeKeyLocked;
+  header.checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked)) + 1; // 2's Complement
   EEPROM.put(0, header);
   delay(100);
 
@@ -652,11 +670,12 @@ void Chewin::restoreFromEEprom() {
   eepromHeader header;
 
   EEPROM.get(0, header);
-  checkSum = (~(header.volume + header.mode + header.memoKeyBlocked)) + 1; // 2's Complement
+  checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked)) + 1; // 2's Complement
   if (checkSum == header.checkSum) {
     currVolume = header.volume;
     currMode = header.mode;
     memoKeyBlocked = header.memoKeyBlocked;
+    volumeKeyLocked = header.volumeKeyLocked;
 
 #ifdef __SERIAL_DEBUG_XX__
     Serial.println(F("\nresEEprom(): Done!"));
