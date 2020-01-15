@@ -121,6 +121,7 @@ typedef struct {
   uint8_t mode;
   bool memoKeyBlocked;
   bool volumeKeyLocked;
+  bool twiceMuteEnabled;
   uint8_t checkSum;
 } eepromHeader;
 
@@ -157,6 +158,7 @@ class Chewin {
   uint8_t currMode = 0;
   bool memoKeyBlocked = false;
   bool volumeKeyLocked = false;
+  bool twiceMuteEnabled = false;
 
   memoRecord memoSlot;
   sentenceEntry sentenceBuffer[sentenceBufferSize];

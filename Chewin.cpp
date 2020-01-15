@@ -364,6 +364,17 @@ void Chewin::processScanCode(char scanCode) {
         romUpdateRequest = true;
       }
       break;
+      
+    case 0x17:
+      result = true;
+      if (prevScanCode == 0x63) {
+        // twice Mute enabled switching
+        result = false;
+        twiceMuteEnabled = (twiceMuteEnabled) ? false : true;
+        romUpdateRequestTime = millis();
+        romUpdateRequest = true;
+      }
+      break;
 
     default:
       result = true;
@@ -390,6 +401,7 @@ void Chewin::processKeyCode(char key, char scanCode) {
   static chewinMapEntry * chewin;
   static char firstScanCode;
   static uint8_t prevKeyType;
+  static char prevKey = 0x0;
 
   uint16_t sndIdx = 0;
 
@@ -422,7 +434,14 @@ void Chewin::processKeyCode(char key, char scanCode) {
   if (chewin->keyType != KEY_TYPE_F) {
     sndIdx = getKeySoundIdx(key);
     if (sndIdx != 0xFFFF) {
-      mp3Module->play(sndIdx);
+      if (twiceMuteEnabled) {
+        if (key != prevKey) { // Check here to prevent hitting the same key repeatly
+          mp3Module->play(sndIdx);
+          prevKey = key;
+        }
+      } else {
+        mp3Module->play(sndIdx);
+      }
     }
   }
   // End of play key sound
@@ -655,7 +674,8 @@ void Chewin::updateEEprom() {
   header.mode = currMode;
   header.memoKeyBlocked = memoKeyBlocked;
   header.volumeKeyLocked = volumeKeyLocked;
-  header.checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked)) + 1; // 2's Complement
+  header.twiceMuteEnabled = twiceMuteEnabled;
+  header.checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked + header.twiceMuteEnabled)) + 1; // 2's Complement
   EEPROM.put(0, header);
   delay(100);
 
@@ -670,12 +690,13 @@ void Chewin::restoreFromEEprom() {
   eepromHeader header;
 
   EEPROM.get(0, header);
-  checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked)) + 1; // 2's Complement
+  checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked + header.twiceMuteEnabled)) + 1; // 2's Complement
   if (checkSum == header.checkSum) {
     currVolume = header.volume;
     currMode = header.mode;
     memoKeyBlocked = header.memoKeyBlocked;
     volumeKeyLocked = header.volumeKeyLocked;
+    twiceMuteEnabled = header.twiceMuteEnabled;
 
 #ifdef __SERIAL_DEBUG_XX__
     Serial.println(F("\nresEEprom(): Done!"));
