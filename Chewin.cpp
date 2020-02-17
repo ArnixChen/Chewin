@@ -3,6 +3,7 @@
 #include <SoftwareSerial.h>
 
 //#define __SERIAL_DEBUG__
+//#define __SERIAL_DEBUG_DEEP1__
 
 uint16_t shortCutTableForSound[6][10] = {
   {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -107,28 +108,155 @@ char Chewin::getKey() {
   } 
 }
 
+uint8_t Chewin::getToneOfSpell(char keys[spellBufferSize]) {
+  char lastKey=0x0;
+  
+  lastKey = keys[strlen(keys) - 1];
+  switch (lastKey) {
+    case TONE_KEY2:
+      return 2;
+      break;
+
+    case TONE_KEY3:
+      return 3;
+      break;
+      
+    case TONE_KEY4:
+      return 4;
+      break;
+      
+    case TONE_KEY5:
+      return 5;
+      break;
+      
+    default:
+      return 1;
+  }
+  
+  return 0;
+}
+
+uint8_t Chewin::getToneFixCounter(uint8_t currIdx) {
+  uint8_t toneFixCounter = 0;
+  uint8_t currSpellTone = 0;
+  uint8_t nextSpellTone = 0;
+  uint8_t next2SpellTone = 0;
+
+  currSpellTone = getToneOfSpell(sentenceBuffer[currIdx].keys);
+#ifdef __SERIAL_DEBUG_DEEP1__
+  Serial.print(F("tone["));
+  Serial.print(currIdx);
+  Serial.print(F("]: "));
+  Serial.print(currSpellTone);
+#endif
+
+  if (currSpellTone == 3) {
+    toneFixCounter++;
+    if (currIdx+1 < sentenceBufferIdx) {
+      nextSpellTone = getToneOfSpell(sentenceBuffer[currIdx+1].keys);
+      if (nextSpellTone == 3) {
+        toneFixCounter++;
+        if (currIdx+2 < sentenceBufferIdx) {
+          next2SpellTone = getToneOfSpell(sentenceBuffer[currIdx+2].keys);
+          if (next2SpellTone == 3) {
+            toneFixCounter++;
+          }
+        }
+      }
+    }
+  }
+#ifdef __SERIAL_DEBUG_DEEP1__
+  Serial.print(F(" tfc="));
+  Serial.print(toneFixCounter);
+  Serial.println();
+#endif
+  return toneFixCounter;  
+}
+
+// test sentence: 你好我想也可以炒米粉也可以當晚餐
 void Chewin::playSentenceFrom(sentenceSrc src) {
+  uint16_t sndIdx;
   switch(src) {
     case SENTENCE_BUFFER:
       for (int i = 0; i < sentenceBufferIdx; i++) {
         if (idleWorkerForMp3Module())
           return;
-        uint16_t sndIdx = sentenceBuffer[i].sndIndex;
+          
+        if (toneFixEnabled == true) {
+#ifdef __SERIAL_DEBUG_DEEP1__
+          Serial.println(F("playSentenceFrom:toneFixEnabled"));
+#endif
+          toneFixCounter = getToneFixCounter(i);
+          switch (toneFixCounter) {
+            case 2:
+#ifdef __SERIAL_DEBUG_DEEP1__
+              Serial.print(F("tf2("));
+              Serial.print(sentenceBuffer[i].keys);
+              Serial.print(F(") "));
+              Serial.print(sentenceBuffer[i].sndIndex);
+              Serial.print(F("->"));
+#endif
+              sentenceBuffer[i].sndIndex = getSpellSoundIdx(sentenceBuffer[i].keys, 0x11) - 1;
+#ifdef __SERIAL_DEBUG_DEEP1__
+              Serial.println(sentenceBuffer[i].sndIndex);
+#endif
+              // process 2 spells internally and i skip 2
+              mp3Module->playAndWait(sentenceBuffer[i].sndIndex);
+              if (_scanCodeWhileAudioPlaying != NO_KEY) return;
+              mp3Module->playAndWait(sentenceBuffer[i+1].sndIndex);
+              i+=1;
+              continue;
+              break;
+              
+            case 3:
+              if (do3SpellToneFix(i)) {
+                // process 3 spells internally and i skip 3
+                mp3Module->playAndWait(sentenceBuffer[i].sndIndex);
+                if (_scanCodeWhileAudioPlaying != NO_KEY) return;
+                mp3Module->playAndWait(sentenceBuffer[i+1].sndIndex);
+                if (_scanCodeWhileAudioPlaying != NO_KEY) return;
+                mp3Module->playAndWait(sentenceBuffer[i+2].sndIndex);
+                if (_scanCodeWhileAudioPlaying != NO_KEY) return;
+                i+=2;
+                continue;
+              } else {
+                // try toneFix2
+#ifdef __SERIAL_DEBUG_DEEP1__
+                Serial.print(F("tf2("));
+                Serial.print(sentenceBuffer[i].keys);
+                Serial.print(F(") "));
+                Serial.print(sentenceBuffer[i].sndIndex);
+                Serial.print(F("->"));
+#endif
+                sentenceBuffer[i].sndIndex = getSpellSoundIdx(sentenceBuffer[i].keys, 0x11) - 1;
+#ifdef __SERIAL_DEBUG_DEEP1__
+                Serial.println(sentenceBuffer[i].sndIndex);
+#endif
+                // process 2 spells internally and i skip 2
+                mp3Module->playAndWait(sentenceBuffer[i].sndIndex);
+                if (_scanCodeWhileAudioPlaying != NO_KEY) return;
+                mp3Module->playAndWait(sentenceBuffer[i+1].sndIndex);
+                i+=1;
+                continue;
+              }
+              break;
+          }
+        }
+        
+        sndIdx = sentenceBuffer[i].sndIndex;
         if (sndIdx == SND_SILENCE && playSilenceAsClickEnabled == true) {
           sndIdx = SND_NO_CLICK;
         }
         mp3Module->playAndWait(sndIdx);
-        if (_scanCodeWhileAudioPlaying != NO_KEY)
-          return;
+        if (_scanCodeWhileAudioPlaying != NO_KEY) return;
       }
-      Serial.println();
       break;
   
     case MEMO_SLOT:
       for (uint8_t i = 0; i < memoSlot.length; i++) {
         if (idleWorkerForMp3Module())
           return;
-        uint16_t sndIdx = memoSlot.sndIndex[i];
+        sndIdx = memoSlot.sndIndex[i];
         if (sndIdx == SND_SILENCE && playSilenceAsClickEnabled == true) {
           sndIdx = SND_NO_CLICK;
         }
@@ -182,7 +310,7 @@ char Chewin::getScanCodeFromHID(uint8_t mod, uint8_t hid) {
 }
 
 // return true for toneFix success , false for toneFix no match
-bool Chewin::do3SpellToneFix() {
+bool Chewin::do3SpellToneFix(uint8_t currIdx) {
   uint8_t i = 0;
   uint8_t result;
   uint8_t j = 0;
@@ -191,14 +319,14 @@ bool Chewin::do3SpellToneFix() {
   while (strlen(toneFixEntryBuffer.origin[0].keys) != 0) {
     result = 0;
     for (j = 0; j < 3; j++) {
-      result += strcmp(sentenceBuffer[sentenceBufferIdx - 3 + j].keys, toneFixEntryBuffer.origin[j].keys);
+      result += strcmp(sentenceBuffer[currIdx+j].keys, toneFixEntryBuffer.origin[j].keys);
       if (result != 0) break; // If the first spell does not match , then skip rest spell compares for this entry
     }
 
     if (result == 0) {
       for (j = 0; j < 3; j++) {
-        strcpy(sentenceBuffer[sentenceBufferIdx - 3 + j].keys, toneFixEntryBuffer.fixed[j].keys);
-        sentenceBuffer[sentenceBufferIdx - 3 + j].sndIndex += toneFixEntryBuffer.diff[j];
+        //strcpy(sentenceBuffer[sentenceBufferIdx + j].keys, toneFixEntryBuffer.fixed[j].keys);
+        sentenceBuffer[currIdx+j].sndIndex = getSpellSoundIdx(sentenceBuffer[currIdx+j].keys, 0x11) + toneFixEntryBuffer.diff[j];
       }
 #ifdef __SERIAL_DEBUG_XX__
       Serial.println(F("\nTone fixed by table\n"));
@@ -210,11 +338,12 @@ bool Chewin::do3SpellToneFix() {
   }
 
   // For most popular case (3 3 3) to (6 6 3), we fix tone by rule
-  uint8_t len = strlen(sentenceBuffer[sentenceBufferIdx - 2].keys);
-  sentenceBuffer[sentenceBufferIdx - 2].keys[len - 1] = TONE_KEY2;
-  sentenceBuffer[sentenceBufferIdx - 2].sndIndex -= 1;
+  //uint8_t len = strlen(sentenceBuffer[sentenceBufferIdx - 2].keys);
+  //sentenceBuffer[sentenceBufferIdx - 2].keys[len - 1] = TONE_KEY2;
+  //sentenceBuffer[currIdx].sndIndex = getSpellSoundIdx(sentenceBuffer[currIdx].keys, 0x11) - 1;
+  //sentenceBuffer[currIdx+1].sndIndex = getSpellSoundIdx(sentenceBuffer[currIdx+1].keys, 0x11) - 1;;
 
-  return true;
+  return false;
 }
 
 // result status which indicate this scancode need to do processKeyCode()
@@ -276,7 +405,6 @@ void Chewin::processScanCode(char scanCode) {
 
       sentenceBufferIdx = 0;
       spellBufferIdx = 0;
-      toneFixCounter = 0;
       mp3Module->play(SND_SENTENCE_RESTART);
 #ifdef __SERIAL_DEBUG__
       Serial.println(F("\nReset sentence buffer and spell buffer!"));
@@ -295,11 +423,6 @@ void Chewin::processScanCode(char scanCode) {
         break;
 
       sentenceBufferIdx--;
-      if (toneFixEnabled) {
-        if (toneFixCounter > 0) {
-          toneFixCounter--;
-        }
-      }
       mp3Module->playAndWait(SND_SENTENCE_DEL);
       delay(300);
       
@@ -694,51 +817,6 @@ void Chewin::processKeyCode(char key, char scanCode) {
   // Reset spell buffer
   spellBufferIdx = 0;
   spellBuffer[0] = 0;
-
-  if (toneFixEnabled == false)
-    return;
-    
-  if (key == TONE_KEY3) {
-    toneFixCounter++;
-#ifdef __SERIAL_DEBUG_XX__
-    Serial.print(F("tF Counter++ =>"));
-    Serial.println(toneFixCounter);
-#endif
-  } else if (key == TONE_KEY1 || key == TONE_KEY2 || key == TONE_KEY4 || key == TONE_KEY5 || key == SILENCE_KEY) {
-    toneFixCounter = 0;
-#ifdef __SERIAL_DEBUG_XX__
-    Serial.println(F("Reset tF Counter!"));
-#endif
-  }
-
-  if (toneFixCounter == 2) {
-    // The General Tone Change Rule
-    // If we got twice third tone spell in series, then we change tone of previous third tone spell to 2nd tone
-    uint8_t spellLen = strlen(sentenceBuffer[sentenceBufferIdx - 2].keys);
-    sentenceBuffer[sentenceBufferIdx - 2].keys[spellLen - 1] = TONE_KEY2;
-    // Because the audio file of 2nd tone of the spell always in front of the third tone, so use the current sndIndex and minus one
-    sentenceBuffer[sentenceBufferIdx - 2].sndIndex--;
-  } else if (toneFixCounter == 3) {
-    // In such type the General Tone Change Rule can't work properly, we search the tone-change-table to get proper tone change.
-#ifdef __SERIAL_DEBUG_XX__
-    Serial.println(F("tF Counter==3!"));
-#endif
-    if (this->do3SpellToneFix() == true) {
-#ifdef __SERIAL_DEBUG_XX__
-      Serial.println(F("tF Match!"));
-#endif
-      toneFixCounter = 0;
-    } else {
-#ifdef __SERIAL_DEBUG_XX__
-      Serial.println(F("tF Nothing Matched!"));
-#endif
-      toneFixCounter -= 2;
-    }
-  }
-#ifdef __SERIAL_DEBUG_XX__
-  Serial.print(F("tF="));
-  Serial.println(toneFixCounter);
-#endif
 }
 
 void Chewin::saveSentenceToMemoSlot(uint8_t slotIdx) {
