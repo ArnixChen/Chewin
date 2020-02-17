@@ -664,7 +664,7 @@ void Chewin::processKeyCode(char key, char scanCode) {
 #endif
 
   if (sndIdx != 0xFFFF) { // If spellList has this spell
-    mp3Module->playAndWait(sndIdx);
+    mp3Module->play(sndIdx);
 
     if (sentenceBufferIdx < sentenceBufferSize) {
       if (key == SILENCE_KEY) {
