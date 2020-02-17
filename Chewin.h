@@ -28,7 +28,8 @@
 #include <avr/pgmspace.h>
 #include <EEPROM.h>
 #include <SoftwareSerial.h>
-#include <DFPlayerMini_Fast.h>
+#include <DFPlayerMini_Arnix.h>
+#include <Keypad.h>
 
 #define defaultVolume 0x16
 
@@ -146,7 +147,7 @@ class Chewin {
   Chewin(uint8_t rows, uint8_t cols, const chewinMapEntry* chewinMap);
   ~Chewin();
   chewinMapEntry* getChewinMapEntry(char scanCode);
-  DFPlayerMini_Fast* mp3Module = NULL;
+  DFPlayerMini_Arnix* mp3Module = NULL;
   void audioInit(uint8_t pinForTx, uint8_t pinForRx);
   char getScanCodeFromHID(uint8_t mod, uint8_t hid);
 

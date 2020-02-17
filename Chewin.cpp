@@ -52,7 +52,7 @@ Chewin::~Chewin() {
 void Chewin::audioInit(uint8_t pinForTx, uint8_t pinForRx) {
   _mp3Serial = new SoftwareSerial(pinForTx, pinForRx);
   _mp3Serial->begin(9600);
-  mp3Module = new DFPlayerMini_Fast();
+  mp3Module = new DFPlayerMini_Arnix();
   mp3Module->begin(* _mp3Serial);
 
   restoreFromEEprom();
