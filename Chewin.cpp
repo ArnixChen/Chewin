@@ -114,6 +114,9 @@ void Chewin::playSentenceFrom(sentenceSrc src) {
         if (idleWorkerForMp3Module())
           return;
         uint16_t sndIdx = sentenceBuffer[i].sndIndex;
+        if (sndIdx == SND_SILENCE && playSilenceAsClickEnabled == true) {
+          sndIdx = SND_NO_CLICK;
+        }
         mp3Module->playAndWait(sndIdx);
         if (_scanCodeWhileAudioPlaying != NO_KEY)
           return;
@@ -126,6 +129,9 @@ void Chewin::playSentenceFrom(sentenceSrc src) {
         if (idleWorkerForMp3Module())
           return;
         uint16_t sndIdx = memoSlot.sndIndex[i];
+        if (sndIdx == SND_SILENCE && playSilenceAsClickEnabled == true) {
+          sndIdx = SND_NO_CLICK;
+        }
         mp3Module->playAndWait(sndIdx);
         if (_scanCodeWhileAudioPlaying != NO_KEY)
           return;
@@ -410,6 +416,21 @@ void Chewin::processScanCode(char scanCode) {
         result = false;
         memoKeyBlocked = (memoKeyBlocked) ? false : true;
         if (memoKeyBlocked) {
+          mp3Module->play(SND_NO_DRIP);
+        } else {
+          mp3Module->play(SND_NO_GLASS);
+        }
+        romUpdateRequestTime = millis();
+        romUpdateRequest = true;
+      }
+      break;
+      
+    case 0x15:
+      result = true;
+      if (prevScanCode == 0x63) {
+        result = false;
+        playSilenceAsClickEnabled = (playSilenceAsClickEnabled) ? false : true;
+        if (playSilenceAsClickEnabled) {
           mp3Module->play(SND_NO_DRIP);
         } else {
           mp3Module->play(SND_NO_GLASS);
@@ -751,7 +772,8 @@ void Chewin::updateEEprom() {
   header.memoKeyBlocked = memoKeyBlocked;
   header.volumeKeyLocked = volumeKeyLocked;
   header.twiceMuteEnabled = twiceMuteEnabled;
-  header.checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked + header.twiceMuteEnabled)) + 1; // 2's Complement
+  header.playSilenceAsClickEnabled = playSilenceAsClickEnabled;
+  header.checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked + header.twiceMuteEnabled + header.playSilenceAsClickEnabled)) + 1; // 2's Complement
   EEPROM.put(0, header);
   delay(100);
 
@@ -766,13 +788,14 @@ void Chewin::restoreFromEEprom() {
   eepromHeader header;
 
   EEPROM.get(0, header);
-  checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked + header.twiceMuteEnabled)) + 1; // 2's Complement
+  checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked + header.twiceMuteEnabled + header.playSilenceAsClickEnabled)) + 1; // 2's Complement
   if (checkSum == header.checkSum) {
     currVolume = header.volume;
     currMode = header.mode;
     memoKeyBlocked = header.memoKeyBlocked;
     volumeKeyLocked = header.volumeKeyLocked;
     twiceMuteEnabled = header.twiceMuteEnabled;
+    playSilenceAsClickEnabled = header.playSilenceAsClickEnabled;
 
 #ifdef __SERIAL_DEBUG_XX__
     Serial.println(F("\nresEEprom(): Done!"));

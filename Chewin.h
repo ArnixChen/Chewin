@@ -135,6 +135,7 @@ typedef struct {
   bool memoKeyBlocked;
   bool volumeKeyLocked;
   bool twiceMuteEnabled;
+  bool playSilenceAsClickEnabled;
   uint8_t checkSum;
 } eepromHeader;
 
@@ -179,6 +180,7 @@ class Chewin {
   uint8_t currMode = 0;
   
   bool memoKeyBlocked = false;  // ˋ
+  bool playSilenceAsClickEnabled = false; // ㄓ
   bool volumeKeyLocked = true; // ˊ
   bool twiceMuteEnabled = true; // ˙
 
