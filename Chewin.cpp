@@ -107,6 +107,32 @@ char Chewin::getKey() {
   } 
 }
 
+void Chewin::playSentenceFrom(sentenceSrc src) {
+  switch(src) {
+    case SENTENCE_BUFFER:
+      for (int i = 0; i < sentenceBufferIdx; i++) {
+        if (idleWorkerForMp3Module())
+          return;
+        uint16_t sndIdx = sentenceBuffer[i].sndIndex;
+        mp3Module->playAndWait(sndIdx);
+        if (_scanCodeWhileAudioPlaying != NO_KEY)
+          return;
+      }
+      Serial.println();
+      break;
+  
+    case MEMO_SLOT:
+      for (uint8_t i = 0; i < memoSlot.length; i++) {
+        if (idleWorkerForMp3Module())
+          return;
+        uint16_t sndIdx = memoSlot.sndIndex[i];
+        mp3Module->playAndWait(sndIdx);
+        if (_scanCodeWhileAudioPlaying != NO_KEY)
+          return;
+      }
+  }
+}
+
 uint16_t Chewin::getKeySoundIdx(char key) {
   uint16_t i = 0;
 
@@ -255,19 +281,7 @@ void Chewin::processScanCode(char scanCode) {
 #ifdef __SERIAL_DEBUG__XX
       Serial.print(F("\nPlay sentence buffer: "));
 #endif
-      if (sentenceBufferIdx == 0)
-        break;
-
-      for (int i = 0; i < sentenceBufferIdx; i++) {
-#ifdef __SERIAL_DEBUG__
-        Serial.print(sentenceBuffer[i].keys);
-        Serial.print(" ");
-#endif
-        mp3Module->playAndWait(sentenceBuffer[i].sndIndex);
-      }
-#ifdef __SERIAL_DEBUG__
-      Serial.println();
-#endif
+      playSentenceFrom(SENTENCE_BUFFER);
       break;
 
     case 0x62: // Backspace a word
@@ -280,9 +294,8 @@ void Chewin::processScanCode(char scanCode) {
       }
       mp3Module->playAndWait(SND_SENTENCE_DEL);
       delay(300);
-      for (int i = 0; i < sentenceBufferIdx; i++) {
-        mp3Module->playAndWait(sentenceBuffer[i].sndIndex);
-      }
+      
+      playSentenceFrom(SENTENCE_BUFFER);
       break;
 
     case 0x63: // dump spell buffer
@@ -727,9 +740,7 @@ void Chewin::playSentenceFromMemoSlot(uint8_t slotIdx) {
     return;
   }
 
-  for (uint8_t i = 0; i < memoSlot.length; i++) {
-    mp3Module->playAndWait(memoSlot.sndIndex[i]);
-  }
+  playSentenceFrom(MEMO_SLOT);
 }
 
 void Chewin::updateEEprom() {

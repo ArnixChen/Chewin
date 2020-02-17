@@ -89,6 +89,10 @@
 #define KEY_TYPE_F 0x20 // [ ˊˇˋ˙ =]
 #define KEY_TYPE_G 0x40 // Function Keys
 
+enum sentenceSrc {
+  SENTENCE_BUFFER, MEMO_SLOT
+};
+
 // A spell(word) is formed of a series of chewin notes.
 typedef struct {
   char keys[spellBufferSize];
@@ -153,6 +157,7 @@ class Chewin {
   static Keypad *keypadObj;
   static bool idleWorkerForMp3Module();
   static char _scanCodeWhileAudioPlaying;
+  void playSentenceFrom(sentenceSrc src);
 
   DFPlayerMini_Arnix* mp3Module = NULL;
   void audioInit(uint8_t pinForTx, uint8_t pinForRx);
