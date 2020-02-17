@@ -165,7 +165,7 @@ void Chewin::processScanCode(char scanCode) {
 
   switch (scanCode) {
     case 0x68: // Press spacebar key to add silence
-      if ((prevScanCode != 0x68) && (spellBufferIdx == 0) && (sentenceBufferIdx != 0)) {
+      if ((spellBufferIdx == 0) && (sentenceBufferIdx != 0)) {
         if (sentenceBufferIdx < sentenceBufferSize) {
           if (sentenceBuffer[sentenceBufferIdx-1].keys[0] != TONE_KEY1) {
             mp3Module->play(SND_NO_CLICK);
@@ -179,7 +179,7 @@ void Chewin::processScanCode(char scanCode) {
         result = true;
       }
       break;
-  
+
     case 0x65:  // '>'
       if (volumeKeyLocked) {
       } else {
@@ -284,7 +284,7 @@ void Chewin::processScanCode(char scanCode) {
         // After record, we reset the sentenceBuffer and spellBuffer
         sentenceBufferIdx = 0;
         spellBufferIdx = 0;
-        
+
         playSentenceFromMemoSlot(scanCode & 0x0F);
       } else {
         if (memoKeyBlocked) { // While in memoKey blocked mode , press memo key will play key number
@@ -359,7 +359,7 @@ void Chewin::processScanCode(char scanCode) {
         }
       }
       break;
-      
+
     case 0x14:
       result = true;
       if (prevScanCode == 0x63) {
@@ -391,7 +391,7 @@ void Chewin::processScanCode(char scanCode) {
         romUpdateRequest = true;
       }
       break;
-      
+
     case 0x17:
       result = true;
       if (prevScanCode == 0x63) {
@@ -469,7 +469,7 @@ void Chewin::processKeyCode(char key, char scanCode) {
       if (twiceMuteEnabled) {
         // Check here to prevent hitting the same key repeatly
         if (key == prevKey && spellBufferIdx > 0) {
-          
+
         } else {
           mp3Module->play(sndIdx);
           prevKey = key;
