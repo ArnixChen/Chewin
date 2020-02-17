@@ -22,6 +22,9 @@ uint16_t shortCutTableForSound[6][10] = {
   {'~', '{', '}', '[', ']', '\\', '-', TONE_KEY1, '<', '>'},
   {SILENCE_KEY,  0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0},
   };*/
+  
+Keypad* Chewin::keypadObj = NULL;
+char Chewin::_scanCodeWhileAudioPlaying = NO_KEY;
 
 Chewin::Chewin(uint8_t rows, uint8_t cols, const chewinMapEntry* chewinMap, uint16_t battLowThreshold) {
   ROWS = rows;
@@ -37,6 +40,7 @@ Chewin::Chewin(uint8_t rows, uint8_t cols, const chewinMapEntry* chewinMap) {
   _chewinMap = chewinMap;
   batteryLowThreshold = defaultBatteryLowThreshold;
   updateShortCutTable();
+  _scanCodeWhileAudioPlaying = NO_KEY;
 }
 
 Chewin::~Chewin() {
@@ -49,10 +53,22 @@ Chewin::~Chewin() {
   }
 }
 
+bool Chewin::idleWorkerForMp3Module() {
+  if (keypadObj != NULL) {
+    char result = keypadObj->getKey();
+    if (result != NO_KEY) {
+      _scanCodeWhileAudioPlaying = result;
+      return true;
+    }
+  }
+  return false;
+}
+
 void Chewin::audioInit(uint8_t pinForTx, uint8_t pinForRx) {
   _mp3Serial = new SoftwareSerial(pinForTx, pinForRx);
   _mp3Serial->begin(9600);
   mp3Module = new DFPlayerMini_Arnix();
+  mp3Module->setIdleWorker(idleWorkerForMp3Module);
   mp3Module->begin(* _mp3Serial);
 
   restoreFromEEprom();
@@ -75,6 +91,20 @@ chewinMapEntry* Chewin::getChewinMapEntry(char scanCode) {
     }*/
 
   return (chewinMapEntry *) memcpy_P(&chewinMapEntryBuffer, _chewinMap + row * COLS + col, sizeof(chewinMapEntry));
+}
+
+void Chewin::setKeypad(Keypad* keypad) {
+  keypadObj = keypad;
+}
+
+char Chewin::getKey() {
+  if (_scanCodeWhileAudioPlaying != NO_KEY) {
+    char tmpScanCode = _scanCodeWhileAudioPlaying;
+    _scanCodeWhileAudioPlaying = NO_KEY;
+    return tmpScanCode;
+  } else {
+    return keypadObj->getKey();
+  } 
 }
 
 uint16_t Chewin::getKeySoundIdx(char key) {

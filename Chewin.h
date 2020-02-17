@@ -147,6 +147,13 @@ class Chewin {
   Chewin(uint8_t rows, uint8_t cols, const chewinMapEntry* chewinMap);
   ~Chewin();
   chewinMapEntry* getChewinMapEntry(char scanCode);
+  void setKeypad(Keypad* keypad);
+  char getKey();
+
+  static Keypad *keypadObj;
+  static bool idleWorkerForMp3Module();
+  static char _scanCodeWhileAudioPlaying;
+
   DFPlayerMini_Arnix* mp3Module = NULL;
   void audioInit(uint8_t pinForTx, uint8_t pinForRx);
   char getScanCodeFromHID(uint8_t mod, uint8_t hid);
@@ -165,9 +172,10 @@ class Chewin {
   unsigned long romUpdateRequestTime = 0;
   uint8_t currVolume = 0;
   uint8_t currMode = 0;
-  bool memoKeyBlocked = false;
-  bool volumeKeyLocked = false;
-  bool twiceMuteEnabled = false;
+  
+  bool memoKeyBlocked = false;  // ˋ
+  bool volumeKeyLocked = true; // ˊ
+  bool twiceMuteEnabled = true; // ˙
 
   memoRecord memoSlot;
   sentenceEntry sentenceBuffer[sentenceBufferSize];
