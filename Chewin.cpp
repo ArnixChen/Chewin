@@ -295,8 +295,10 @@ void Chewin::processScanCode(char scanCode) {
         break;
 
       sentenceBufferIdx--;
-      if (toneFixCounter > 0) {
-        toneFixCounter--;
+      if (toneFixEnabled) {
+        if (toneFixCounter > 0) {
+          toneFixCounter--;
+        }
       }
       mp3Module->playAndWait(SND_SENTENCE_DEL);
       delay(300);
@@ -363,9 +365,10 @@ void Chewin::processScanCode(char scanCode) {
       } // End of If prevScanCode == 0x63
       break;
 
-    case 0x13: // Read current voltage
+    case 0x13:
       result = true;
       if (prevScanCode == 0x63) {
+	// Read current voltage
         mp3Module->stop();
         result = false;
         uint16_t vbat = readVBat();
@@ -412,8 +415,8 @@ void Chewin::processScanCode(char scanCode) {
     case 0x14:
       result = true;
       if (prevScanCode == 0x63) {
-        // MemoKey blocked mode switching
         result = false;
+        // MemoKey block switch
         memoKeyBlocked = (memoKeyBlocked) ? false : true;
         if (memoKeyBlocked) {
           mp3Module->play(SND_NO_DRIP);
@@ -429,6 +432,7 @@ void Chewin::processScanCode(char scanCode) {
       result = true;
       if (prevScanCode == 0x63) {
         result = false;
+        // Play silence as click switch
         playSilenceAsClickEnabled = (playSilenceAsClickEnabled) ? false : true;
         if (playSilenceAsClickEnabled) {
           mp3Module->play(SND_NO_DRIP);
@@ -443,8 +447,8 @@ void Chewin::processScanCode(char scanCode) {
     case 0x16:
       result = true;
       if (prevScanCode == 0x63) {
-        // VolumeKey locked mode switching
         result = false;
+        // VolumeKey locked mode switch
         volumeKeyLocked = (volumeKeyLocked) ? false : true;
         if (volumeKeyLocked) {
           mp3Module->play(SND_NO_DRIP);
@@ -459,10 +463,26 @@ void Chewin::processScanCode(char scanCode) {
     case 0x17:
       result = true;
       if (prevScanCode == 0x63) {
-        // twice Mute enabled switching
         result = false;
+	// twice Mute enabl switch -- Prevent chewin key from being pressed several time
         twiceMuteEnabled = (twiceMuteEnabled) ? false : true;
         if (twiceMuteEnabled) {
+          mp3Module->play(SND_NO_DRIP);
+        } else {
+          mp3Module->play(SND_NO_GLASS);
+        }
+        romUpdateRequestTime = millis();
+        romUpdateRequest = true;
+      }
+      break;
+
+    case 0x18:
+      result = true;
+      if (prevScanCode == 0x63) {
+        result = false;
+	// toneFix enabl switch
+        toneFixEnabled = (toneFixEnabled) ? false : true;
+        if (toneFixEnabled) {
           mp3Module->play(SND_NO_DRIP);
         } else {
           mp3Module->play(SND_NO_GLASS);
@@ -675,6 +695,9 @@ void Chewin::processKeyCode(char key, char scanCode) {
   spellBufferIdx = 0;
   spellBuffer[0] = 0;
 
+  if (toneFixEnabled == false)
+    return;
+    
   if (key == TONE_KEY3) {
     toneFixCounter++;
 #ifdef __SERIAL_DEBUG_XX__
@@ -773,7 +796,8 @@ void Chewin::updateEEprom() {
   header.volumeKeyLocked = volumeKeyLocked;
   header.twiceMuteEnabled = twiceMuteEnabled;
   header.playSilenceAsClickEnabled = playSilenceAsClickEnabled;
-  header.checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked + header.twiceMuteEnabled + header.playSilenceAsClickEnabled)) + 1; // 2's Complement
+  header.toneFixEnabled = toneFixEnabled;
+  header.checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked + header.twiceMuteEnabled + header.playSilenceAsClickEnabled + header.toneFixEnabled)) + 1; // 2's Complement
   EEPROM.put(0, header);
   delay(100);
 
@@ -788,7 +812,7 @@ void Chewin::restoreFromEEprom() {
   eepromHeader header;
 
   EEPROM.get(0, header);
-  checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked + header.twiceMuteEnabled + header.playSilenceAsClickEnabled)) + 1; // 2's Complement
+  checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked + header.twiceMuteEnabled + header.playSilenceAsClickEnabled + header.toneFixEnabled)) + 1; // 2's Complement
   if (checkSum == header.checkSum) {
     currVolume = header.volume;
     currMode = header.mode;
@@ -796,7 +820,7 @@ void Chewin::restoreFromEEprom() {
     volumeKeyLocked = header.volumeKeyLocked;
     twiceMuteEnabled = header.twiceMuteEnabled;
     playSilenceAsClickEnabled = header.playSilenceAsClickEnabled;
-
+    toneFixEnabled = header.toneFixEnabled;
 #ifdef __SERIAL_DEBUG_XX__
     Serial.println(F("\nresEEprom(): Done!"));
     Serial.println(currVolume);
