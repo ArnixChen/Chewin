@@ -173,9 +173,104 @@ uint8_t Chewin::getToneFixCounter(uint8_t currIdx) {
   return toneFixCounter;  
 }
 
-// test sentence: 你好我想也可以炒米粉也可以當晚餐
+// return true for toneFix success , false for toneFix no match
+bool Chewin::do3SpellToneFix(uint8_t currIdx) {
+  uint8_t i = 0;
+  uint8_t result;
+  uint8_t j = 0;
+
+  getToneFixEntry(i++);
+  while (strlen(toneFixEntryBuffer.origin[0].keys) != 0) {
+    result = 0;
+    for (j = 0; j < 3; j++) {
+      result += strcmp(sentenceBuffer[currIdx+j].keys, toneFixEntryBuffer.origin[j].keys);
+      if (result != 0) break; // If the first spell does not match , then skip rest spell compares for this entry
+    }
+
+    if (result == 0) {
+      for (j = 0; j < 3; j++) {
+        //strcpy(sentenceBuffer[sentenceBufferIdx + j].keys, toneFixEntryBuffer.fixed[j].keys);
+        sentenceBuffer[currIdx+j].sndIndex = getSpellSoundIdx(sentenceBuffer[currIdx+j].keys, 0x11) + toneFixEntryBuffer.diff[j];
+      }
+#ifdef __SERIAL_DEBUG_XX__
+      Serial.println(F("\nTone fixed by table\n"));
+#endif
+      return true;
+    }
+
+    getToneFixEntry(i++);
+  }
+
+  // For most popular case (3 3 3) to (6 6 3), we fix tone by rule
+  //uint8_t len = strlen(sentenceBuffer[sentenceBufferIdx - 2].keys);
+  //sentenceBuffer[sentenceBufferIdx - 2].keys[len - 1] = TONE_KEY2;
+  //sentenceBuffer[currIdx].sndIndex = getSpellSoundIdx(sentenceBuffer[currIdx].keys, 0x11) - 1;
+  //sentenceBuffer[currIdx+1].sndIndex = getSpellSoundIdx(sentenceBuffer[currIdx+1].keys, 0x11) - 1;;
+
+  return false;
+}
+
+uint8_t Chewin::processToneFix(uint8_t i) {
+  toneFixCounter = getToneFixCounter(i);
+  switch (toneFixCounter) {
+    case 2:
+#ifdef __SERIAL_DEBUG_DEEP1__
+      Serial.print(F("tf2("));
+      Serial.print(sentenceBuffer[i].keys);
+      Serial.print(F(") "));
+      Serial.print(sentenceBuffer[i].sndIndex);
+      Serial.print(F("->"));
+#endif
+      sentenceBuffer[i].sndIndex = getSpellSoundIdx(sentenceBuffer[i].keys, 0x11) - 1;
+#ifdef __SERIAL_DEBUG_DEEP1__
+      Serial.println(sentenceBuffer[i].sndIndex);
+#endif
+      // process 2 spells internally and i skip 2
+      mp3Module->playAndWait(sentenceBuffer[i].sndIndex);
+      if (_scanCodeWhileAudioPlaying != NO_KEY) return i;
+      mp3Module->playAndWait(sentenceBuffer[i+1].sndIndex);
+      i+=1;
+      break;
+      
+    case 3:
+      if (do3SpellToneFix(i)) {
+        // process 3 spells internally and i skip 3
+        mp3Module->playAndWait(sentenceBuffer[i].sndIndex);
+        if (_scanCodeWhileAudioPlaying != NO_KEY) return i;
+        mp3Module->playAndWait(sentenceBuffer[i+1].sndIndex);
+        if (_scanCodeWhileAudioPlaying != NO_KEY) return i;
+        mp3Module->playAndWait(sentenceBuffer[i+2].sndIndex);
+        if (_scanCodeWhileAudioPlaying != NO_KEY) return i;
+        i+=2;
+      } else {
+        // try toneFix2
+#ifdef __SERIAL_DEBUG_DEEP1__
+        Serial.print(F("tf2("));
+        Serial.print(sentenceBuffer[i].keys);
+        Serial.print(F(") "));
+        Serial.print(sentenceBuffer[i].sndIndex);
+        Serial.print(F("->"));
+#endif
+        sentenceBuffer[i].sndIndex = getSpellSoundIdx(sentenceBuffer[i].keys, 0x11) - 1;
+#ifdef __SERIAL_DEBUG_DEEP1__
+        Serial.println(sentenceBuffer[i].sndIndex);
+#endif
+        // process 2 spells internally and i skip 2
+        mp3Module->playAndWait(sentenceBuffer[i].sndIndex);
+        if (_scanCodeWhileAudioPlaying != NO_KEY) return i;
+        mp3Module->playAndWait(sentenceBuffer[i+1].sndIndex);
+        i+=1;
+      }
+      break;
+  }
+  return i;
+}
+
+// test sentence: 你好我想炒米粉也可以當晚餐
 void Chewin::playSentenceFrom(sentenceSrc src) {
   uint16_t sndIdx;
+  uint8_t resultIdx;
+  
   switch(src) {
     case SENTENCE_BUFFER:
       for (int i = 0; i < sentenceBufferIdx; i++) {
@@ -186,67 +281,21 @@ void Chewin::playSentenceFrom(sentenceSrc src) {
 #ifdef __SERIAL_DEBUG_DEEP1__
           Serial.println(F("playSentenceFrom:toneFixEnabled"));
 #endif
-          toneFixCounter = getToneFixCounter(i);
-          switch (toneFixCounter) {
-            case 2:
-#ifdef __SERIAL_DEBUG_DEEP1__
-              Serial.print(F("tf2("));
-              Serial.print(sentenceBuffer[i].keys);
-              Serial.print(F(") "));
-              Serial.print(sentenceBuffer[i].sndIndex);
-              Serial.print(F("->"));
-#endif
-              sentenceBuffer[i].sndIndex = getSpellSoundIdx(sentenceBuffer[i].keys, 0x11) - 1;
-#ifdef __SERIAL_DEBUG_DEEP1__
-              Serial.println(sentenceBuffer[i].sndIndex);
-#endif
-              // process 2 spells internally and i skip 2
-              mp3Module->playAndWait(sentenceBuffer[i].sndIndex);
-              if (_scanCodeWhileAudioPlaying != NO_KEY) return;
-              mp3Module->playAndWait(sentenceBuffer[i+1].sndIndex);
-              i+=1;
-              continue;
-              break;
-              
-            case 3:
-              if (do3SpellToneFix(i)) {
-                // process 3 spells internally and i skip 3
-                mp3Module->playAndWait(sentenceBuffer[i].sndIndex);
-                if (_scanCodeWhileAudioPlaying != NO_KEY) return;
-                mp3Module->playAndWait(sentenceBuffer[i+1].sndIndex);
-                if (_scanCodeWhileAudioPlaying != NO_KEY) return;
-                mp3Module->playAndWait(sentenceBuffer[i+2].sndIndex);
-                if (_scanCodeWhileAudioPlaying != NO_KEY) return;
-                i+=2;
-                continue;
-              } else {
-                // try toneFix2
-#ifdef __SERIAL_DEBUG_DEEP1__
-                Serial.print(F("tf2("));
-                Serial.print(sentenceBuffer[i].keys);
-                Serial.print(F(") "));
-                Serial.print(sentenceBuffer[i].sndIndex);
-                Serial.print(F("->"));
-#endif
-                sentenceBuffer[i].sndIndex = getSpellSoundIdx(sentenceBuffer[i].keys, 0x11) - 1;
-#ifdef __SERIAL_DEBUG_DEEP1__
-                Serial.println(sentenceBuffer[i].sndIndex);
-#endif
-                // process 2 spells internally and i skip 2
-                mp3Module->playAndWait(sentenceBuffer[i].sndIndex);
-                if (_scanCodeWhileAudioPlaying != NO_KEY) return;
-                mp3Module->playAndWait(sentenceBuffer[i+1].sndIndex);
-                i+=1;
-                continue;
-              }
-              break;
+          resultIdx = processToneFix(i);
+          if (_scanCodeWhileAudioPlaying != NO_KEY) return;
+          if (resultIdx != i) {
+            i = resultIdx;
+            continue;
           }
         }
         
         sndIdx = sentenceBuffer[i].sndIndex;
-        if (sndIdx == SND_SILENCE && playSilenceAsClickEnabled == true) {
-          sndIdx = SND_NO_CLICK;
+        if (sndIdx == SND_SILENCE) {
+          if (playSilenceAsSound != 0) {
+            sndIdx = SND_WOOD_FISH - 1 + playSilenceAsSound;
+          }
         }
+
         mp3Module->playAndWait(sndIdx);
         if (_scanCodeWhileAudioPlaying != NO_KEY) return;
       }
@@ -256,9 +305,12 @@ void Chewin::playSentenceFrom(sentenceSrc src) {
       for (uint8_t i = 0; i < memoSlot.length; i++) {
         if (idleWorkerForMp3Module())
           return;
+          
         sndIdx = memoSlot.sndIndex[i];
-        if (sndIdx == SND_SILENCE && playSilenceAsClickEnabled == true) {
-          sndIdx = SND_NO_CLICK;
+        if (sndIdx == SND_SILENCE) {
+          if (playSilenceAsSound != 0) {
+            sndIdx = SND_WOOD_FISH - 1 + playSilenceAsSound;
+          }
         }
         mp3Module->playAndWait(sndIdx);
         if (_scanCodeWhileAudioPlaying != NO_KEY)
@@ -309,43 +361,6 @@ char Chewin::getScanCodeFromHID(uint8_t mod, uint8_t hid) {
   return NO_KEY;
 }
 
-// return true for toneFix success , false for toneFix no match
-bool Chewin::do3SpellToneFix(uint8_t currIdx) {
-  uint8_t i = 0;
-  uint8_t result;
-  uint8_t j = 0;
-
-  getToneFixEntry(i++);
-  while (strlen(toneFixEntryBuffer.origin[0].keys) != 0) {
-    result = 0;
-    for (j = 0; j < 3; j++) {
-      result += strcmp(sentenceBuffer[currIdx+j].keys, toneFixEntryBuffer.origin[j].keys);
-      if (result != 0) break; // If the first spell does not match , then skip rest spell compares for this entry
-    }
-
-    if (result == 0) {
-      for (j = 0; j < 3; j++) {
-        //strcpy(sentenceBuffer[sentenceBufferIdx + j].keys, toneFixEntryBuffer.fixed[j].keys);
-        sentenceBuffer[currIdx+j].sndIndex = getSpellSoundIdx(sentenceBuffer[currIdx+j].keys, 0x11) + toneFixEntryBuffer.diff[j];
-      }
-#ifdef __SERIAL_DEBUG_XX__
-      Serial.println(F("\nTone fixed by table\n"));
-#endif
-      return true;
-    }
-
-    getToneFixEntry(i++);
-  }
-
-  // For most popular case (3 3 3) to (6 6 3), we fix tone by rule
-  //uint8_t len = strlen(sentenceBuffer[sentenceBufferIdx - 2].keys);
-  //sentenceBuffer[sentenceBufferIdx - 2].keys[len - 1] = TONE_KEY2;
-  //sentenceBuffer[currIdx].sndIndex = getSpellSoundIdx(sentenceBuffer[currIdx].keys, 0x11) - 1;
-  //sentenceBuffer[currIdx+1].sndIndex = getSpellSoundIdx(sentenceBuffer[currIdx+1].keys, 0x11) - 1;;
-
-  return false;
-}
-
 // result status which indicate this scancode need to do processKeyCode()
 // true -- need processKeyCode()
 // false -- noneed to do processKeyCode()
@@ -359,7 +374,11 @@ void Chewin::processScanCode(char scanCode) {
       if ((spellBufferIdx == 0) && (sentenceBufferIdx != 0)) {
         if (sentenceBufferIdx < sentenceBufferSize) {
           if (sentenceBuffer[sentenceBufferIdx-1].keys[0] != TONE_KEY1) {
-            mp3Module->play(SND_NO_CLICK);
+            if (playSilenceAsSound == 0) {
+              mp3Module->play(SND_WOOD_FISH);  
+            } else {
+              mp3Module->play(SND_WOOD_FISH - 1 + playSilenceAsSound);
+            }
             sentenceBuffer[sentenceBufferIdx].keys[0] = TONE_KEY1;
             sentenceBuffer[sentenceBufferIdx].keys[1] = 0x0;
             sentenceBuffer[sentenceBufferIdx++].sndIndex = SND_SILENCE;
@@ -542,9 +561,9 @@ void Chewin::processScanCode(char scanCode) {
         // MemoKey block switch
         memoKeyBlocked = (memoKeyBlocked) ? false : true;
         if (memoKeyBlocked) {
-          mp3Module->play(SND_NO_DRIP);
+          mp3Module->play(SND_DRIP);
         } else {
-          mp3Module->play(SND_NO_GLASS);
+          mp3Module->play(SND_GLASS);
         }
         romUpdateRequestTime = millis();
         romUpdateRequest = true;
@@ -556,11 +575,11 @@ void Chewin::processScanCode(char scanCode) {
       if (prevScanCode == 0x63) {
         result = false;
         // Play silence as click switch
-        playSilenceAsClickEnabled = (playSilenceAsClickEnabled) ? false : true;
-        if (playSilenceAsClickEnabled) {
-          mp3Module->play(SND_NO_DRIP);
+        playSilenceAsSound = (playSilenceAsSound < 3) ? playSilenceAsSound+1 : 0;
+        if (playSilenceAsSound == 0) {
+          mp3Module->play(SND_DRIP);
         } else {
-          mp3Module->play(SND_NO_GLASS);
+          mp3Module->play(SND_WOOD_FISH - 1 + playSilenceAsSound);
         }
         romUpdateRequestTime = millis();
         romUpdateRequest = true;
@@ -574,9 +593,9 @@ void Chewin::processScanCode(char scanCode) {
         // VolumeKey locked mode switch
         volumeKeyLocked = (volumeKeyLocked) ? false : true;
         if (volumeKeyLocked) {
-          mp3Module->play(SND_NO_DRIP);
+          mp3Module->play(SND_DRIP);
         } else {
-          mp3Module->play(SND_NO_GLASS);
+          mp3Module->play(SND_GLASS);
         }
         romUpdateRequestTime = millis();
         romUpdateRequest = true;
@@ -590,9 +609,9 @@ void Chewin::processScanCode(char scanCode) {
 	// twice Mute enabl switch -- Prevent chewin key from being pressed several time
         twiceMuteEnabled = (twiceMuteEnabled) ? false : true;
         if (twiceMuteEnabled) {
-          mp3Module->play(SND_NO_DRIP);
+          mp3Module->play(SND_DRIP);
         } else {
-          mp3Module->play(SND_NO_GLASS);
+          mp3Module->play(SND_GLASS);
         }
         romUpdateRequestTime = millis();
         romUpdateRequest = true;
@@ -606,9 +625,9 @@ void Chewin::processScanCode(char scanCode) {
 	// toneFix enabl switch
         toneFixEnabled = (toneFixEnabled) ? false : true;
         if (toneFixEnabled) {
-          mp3Module->play(SND_NO_DRIP);
+          mp3Module->play(SND_DRIP);
         } else {
-          mp3Module->play(SND_NO_GLASS);
+          mp3Module->play(SND_GLASS);
         }
         romUpdateRequestTime = millis();
         romUpdateRequest = true;
@@ -873,9 +892,9 @@ void Chewin::updateEEprom() {
   header.memoKeyBlocked = memoKeyBlocked;
   header.volumeKeyLocked = volumeKeyLocked;
   header.twiceMuteEnabled = twiceMuteEnabled;
-  header.playSilenceAsClickEnabled = playSilenceAsClickEnabled;
+  header.playSilenceAsSound = playSilenceAsSound;
   header.toneFixEnabled = toneFixEnabled;
-  header.checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked + header.twiceMuteEnabled + header.playSilenceAsClickEnabled + header.toneFixEnabled)) + 1; // 2's Complement
+  header.checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked + header.twiceMuteEnabled + header.playSilenceAsSound + header.toneFixEnabled)) + 1; // 2's Complement
   EEPROM.put(0, header);
   delay(100);
 
@@ -890,14 +909,14 @@ void Chewin::restoreFromEEprom() {
   eepromHeader header;
 
   EEPROM.get(0, header);
-  checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked + header.twiceMuteEnabled + header.playSilenceAsClickEnabled + header.toneFixEnabled)) + 1; // 2's Complement
+  checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked + header.twiceMuteEnabled + header.playSilenceAsSound + header.toneFixEnabled)) + 1; // 2's Complement
   if (checkSum == header.checkSum) {
     currVolume = header.volume;
     currMode = header.mode;
     memoKeyBlocked = header.memoKeyBlocked;
     volumeKeyLocked = header.volumeKeyLocked;
     twiceMuteEnabled = header.twiceMuteEnabled;
-    playSilenceAsClickEnabled = header.playSilenceAsClickEnabled;
+    playSilenceAsSound = header.playSilenceAsSound;
     toneFixEnabled = header.toneFixEnabled;
 #ifdef __SERIAL_DEBUG_XX__
     Serial.println(F("\nresEEprom(): Done!"));

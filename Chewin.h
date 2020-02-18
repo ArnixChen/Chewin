@@ -20,7 +20,7 @@
 
 #define sentenceBufferSize 48
 #define spellBufferSize 5
-#define chewinStartNumber  31
+#define chewinStartNumber  41
 //#define ROWS 7           //number of rows of keypad
 //#define COLS 10          //number of columns of keypad
 
@@ -61,14 +61,17 @@
 #define SND_NO_EIGHT 20
 #define SND_NO_NINE 21
 #define SND_NO_TEN 22
-#define SND_NO_CLICK 23
-#define SND_NO_DRIP 24
-#define SND_NO_GLASS 25
-#define SND_NO_MESSAGE 26
-#define SND_NO_BUTTON_PRESSED 27
-#define SND_NO_DIALOG_INFO 28
-#define SND_NO_SYSTEM_READY 29
-#define SND_NO_LOGOUT 30
+#define SND_CLICK 23
+#define SND_DRIP 24
+#define SND_GLASS 25
+#define SND_MESSAGE 26
+#define SND_BUTTON_PRESSED 27
+#define SND_DIALOG_INFO 28
+#define SND_SYSTEM_READY 29
+#define SND_LOGOUT 30
+#define SND_WOOD_FISH 31
+#define SND_HAND_DRUM 32
+#define SND_BOBBLE 33
 
 #define TONE_KEY1 ' '
 #define TONE_KEY2 '6'
@@ -135,7 +138,7 @@ typedef struct {
   bool memoKeyBlocked;
   bool volumeKeyLocked;
   bool twiceMuteEnabled;
-  bool playSilenceAsClickEnabled;
+  uint8_t playSilenceAsSound;
   bool toneFixEnabled;
   uint8_t checkSum;
 } eepromHeader;
@@ -168,6 +171,7 @@ class Chewin {
   void doHousekeeping();
   void processScanCode(char scanCode);
   void processKeyCode(char key, char scanCode);
+  uint8_t processToneFix(uint8_t i);
 
  protected:
   uint8_t ROWS, COLS;
@@ -181,7 +185,7 @@ class Chewin {
   uint8_t currMode = 0;
   
   bool memoKeyBlocked = false;  // ˋ
-  bool playSilenceAsClickEnabled = false; // ㄓ
+  uint8_t playSilenceAsSound = 1; // ㄓ
   bool volumeKeyLocked = true; // ˊ
   bool twiceMuteEnabled = true; // ˙
   bool toneFixEnabled = true; // ㄚ
