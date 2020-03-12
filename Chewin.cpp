@@ -364,10 +364,13 @@ char Chewin::getScanCodeFromHID(uint8_t mod, uint8_t hid) {
 // result status which indicate this scancode need to do processKeyCode()
 // true -- need processKeyCode()
 // false -- noneed to do processKeyCode()
-void Chewin::processScanCode(char scanCode) {
+void Chewin::processScanCode(char scanCode, unsigned long scanTime=millis()) {
   static char prevScanCode = 0;
+  static unsigned long prevScanTime;
   static uint8_t eqSelect = 0;
   bool result = false;
+  // Add time limitation to prevent user from playing sound effects of those implicit switches (0x63 + 0x13...)
+  bool justInTime = ((scanTime - prevScanTime) < 900) ? true : false;
 
   switch (scanCode) {
     case 0x68: // Press spacebar key to add silence
@@ -509,7 +512,7 @@ void Chewin::processScanCode(char scanCode) {
 
     case 0x13:
       result = true;
-      if (prevScanCode == 0x63) {
+      if (prevScanCode == 0x63 && justInTime) {
 	// Read current voltage
         mp3Module->stop();
         result = false;
@@ -556,7 +559,7 @@ void Chewin::processScanCode(char scanCode) {
 
     case 0x14:
       result = true;
-      if (prevScanCode == 0x63) {
+      if (prevScanCode == 0x63 && justInTime) {
         result = false;
         // MemoKey block switch
         memoKeyBlocked = (memoKeyBlocked) ? false : true;
@@ -572,7 +575,7 @@ void Chewin::processScanCode(char scanCode) {
       
     case 0x15:
       result = true;
-      if (prevScanCode == 0x63) {
+      if (prevScanCode == 0x63 && justInTime) {
         result = false;
         // Play silence as click switch
         playSilenceAsSound = (playSilenceAsSound < 3) ? playSilenceAsSound+1 : 0;
@@ -588,7 +591,7 @@ void Chewin::processScanCode(char scanCode) {
 
     case 0x16:
       result = true;
-      if (prevScanCode == 0x63) {
+      if (prevScanCode == 0x63 && justInTime) {
         result = false;
         // VolumeKey locked mode switch
         volumeKeyLocked = (volumeKeyLocked) ? false : true;
@@ -604,7 +607,7 @@ void Chewin::processScanCode(char scanCode) {
 
     case 0x17:
       result = true;
-      if (prevScanCode == 0x63) {
+      if (prevScanCode == 0x63 && justInTime) {
         result = false;
 	// twice Mute enabl switch -- Prevent chewin key from being pressed several time
         twiceMuteEnabled = (twiceMuteEnabled) ? false : true;
@@ -620,7 +623,7 @@ void Chewin::processScanCode(char scanCode) {
 
     case 0x18:
       result = true;
-      if (prevScanCode == 0x63) {
+      if (prevScanCode == 0x63 && justInTime) {
         result = false;
 	// toneFix enabl switch
         toneFixEnabled = (toneFixEnabled) ? false : true;
@@ -639,6 +642,7 @@ void Chewin::processScanCode(char scanCode) {
   } // End of switch case
 
   prevScanCode = scanCode;
+  prevScanTime = scanTime;
 
 #ifdef __SERIAL_DEBUG__
   static chewinMapEntry * chewin;

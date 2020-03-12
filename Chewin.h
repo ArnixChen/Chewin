@@ -169,7 +169,7 @@ class Chewin {
   char getScanCodeFromHID(uint8_t mod, uint8_t hid);
 
   void doHousekeeping();
-  void processScanCode(char scanCode);
+  void processScanCode(char scanCode, unsigned long scanTime);
   void processKeyCode(char key, char scanCode);
   uint8_t processToneFix(uint8_t i);
 
