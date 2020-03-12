@@ -375,7 +375,7 @@ void Chewin::processScanCode(char scanCode) {
         if (sentenceBufferIdx < sentenceBufferSize) {
           if (sentenceBuffer[sentenceBufferIdx-1].keys[0] != TONE_KEY1) {
             if (playSilenceAsSound == 0) {
-              mp3Module->play(SND_WOOD_FISH);  
+              mp3Module->play(SND_SILENCE);  
             } else {
               mp3Module->play(SND_WOOD_FISH - 1 + playSilenceAsSound);
             }

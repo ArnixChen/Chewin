@@ -31,7 +31,7 @@
 #include <DFPlayerMini_Arnix.h>
 #include <Keypad.h>
 
-#define defaultVolume 0x10
+#define defaultVolume 0x16
 
 #define checkVccPeriod  20000 // unit in mini-second
 #define defaultBatteryLowThreshold 3650 // unit in mini-volt
@@ -185,7 +185,7 @@ class Chewin {
   uint8_t currMode = 0;
   
   bool memoKeyBlocked = false;  // ˋ
-  uint8_t playSilenceAsSound = 1; // ㄓ
+  uint8_t playSilenceAsSound = 0; // ㄓ
   bool volumeKeyLocked = true; // ˊ
   bool twiceMuteEnabled = true; // ˙
   bool toneFixEnabled = true; // ㄚ
