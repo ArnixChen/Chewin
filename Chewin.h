@@ -34,6 +34,7 @@
 #define defaultVolume 0x16
 
 #define checkVccPeriod  20000 // unit in mini-second
+#define checkVolumePeriod 2000 // unit in mini-second
 #define defaultBatteryLowThreshold 3650 // unit in mini-volt
 
 // EEPROM will be updated after romUpdateRequestDelay time
@@ -72,6 +73,8 @@
 #define SND_WOOD_FISH 31
 #define SND_HAND_DRUM 32
 #define SND_BOBBLE 33
+#define SND_SENTENCE_BUFFER_FULL_WARNING 30
+#define SND_INPUT_SPEED_GROWUP 35
 
 #define TONE_KEY1 ' '
 #define TONE_KEY2 '6'
@@ -89,7 +92,7 @@
 #define KEY_TYPE_C 0x04 // ㄧ ㄨ ㄩ
 #define KEY_TYPE_D 0x08 // ㄚ ~ ㄥ
 #define KEY_TYPE_E 0x10 // ㄦ
-#define KEY_TYPE_F 0x20 // [ ˊˇˋ˙ =]
+#define KEY_TYPE_F 0x20 // [ ˊˇˋ˙=]
 #define KEY_TYPE_G 0x40 // Function Keys
 
 enum sentenceSrc {
@@ -140,6 +143,8 @@ typedef struct {
   bool twiceMuteEnabled;
   uint8_t playSilenceAsSound;
   bool toneFixEnabled;
+  uint8_t averageSpellTime;
+  bool spellSpeedupSoundEnabled;
   uint8_t checkSum;
 } eepromHeader;
 
@@ -166,6 +171,7 @@ class Chewin {
 
   DFPlayerMini_Arnix* mp3Module = NULL;
   void audioInit(uint8_t pinForTx, uint8_t pinForRx);
+  void playNumber(uint8_t number);
   char getScanCodeFromHID(uint8_t mod, uint8_t hid);
 
   void doHousekeeping();
@@ -181,6 +187,8 @@ class Chewin {
   bool romUpdateRequest = false;
   uint16_t memoSlotUpdateRequest = 0;
   unsigned long romUpdateRequestTime = 0;
+  unsigned long spellBeginTime = 0;
+  uint8_t averageSpellTime = 0;
   uint8_t currVolume = 0;
   uint8_t currMode = 0;
   
@@ -189,6 +197,7 @@ class Chewin {
   bool volumeKeyLocked = true; // ˊ
   bool twiceMuteEnabled = true; // ˙
   bool toneFixEnabled = true; // ㄚ
+  bool spellSpeedupSoundEnabled = true; // ㄅ
 
   memoRecord memoSlot;
   sentenceEntry sentenceBuffer[sentenceBufferSize];

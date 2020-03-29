@@ -3,6 +3,7 @@
 #include <SoftwareSerial.h>
 
 //#define __SERIAL_DEBUG__
+//#define __SERIAL_DEBUG_XX__
 //#define __SERIAL_DEBUG_DEEP1__
 
 uint16_t shortCutTableForSound[6][10] = {
@@ -76,6 +77,27 @@ void Chewin::audioInit(uint8_t pinForTx, uint8_t pinForRx) {
   delay(1250);
   mp3Module->volume(currVolume);
   mp3Module->play(SND_SYSTEM_START);
+}
+
+void Chewin::playNumber(uint8_t number) {
+  uint16_t sndIdx;
+  switch (number) {
+    case 0: sndIdx = SND_NO_ZERO; break;
+    case 1: sndIdx = SND_NO_ONE; break;
+    case 2: sndIdx = SND_NO_TWO; break;
+    case 3: sndIdx = SND_NO_THREE; break;
+    case 4: sndIdx = SND_NO_FOUR; break;
+    case 5: sndIdx = SND_NO_FIVE; break;
+    case 6: sndIdx = SND_NO_SIX; break;
+    case 7: sndIdx = SND_NO_SEVEN; break;
+    case 8: sndIdx = SND_NO_EIGHT; break;
+    case 9: sndIdx = SND_NO_NINE; break;
+  }
+#ifdef  __SERIAL_DEBUG__
+  Serial.print(F("sndIdx="));
+  Serial.println(sndIdx);
+#endif
+  mp3Module->playAndWait(sndIdx);
 }
 
 chewinMapEntry* Chewin::getChewinMapEntry(char scanCode) {
@@ -509,6 +531,47 @@ void Chewin::processScanCode(char scanCode, unsigned long scanTime=millis()) {
         } // End of If memoKeyBlocked
       } // End of If prevScanCode == 0x63
       break;
+      
+    case 0x11: // Enable/Disable spell speed grows up sound effect
+      result = true;
+      if (prevScanCode == 0x63 && justInTime) {
+        result = false;
+        // spellSpeedupSoundEnabled switch
+        spellSpeedupSoundEnabled = (spellSpeedupSoundEnabled) ? false : true;
+        if (spellSpeedupSoundEnabled) {
+          mp3Module->play(SND_DRIP);
+        } else {
+          mp3Module->play(SND_GLASS);
+        }
+        romUpdateRequestTime = millis();
+        romUpdateRequest = true;
+      }
+      break;
+
+    case 0x12: // report average spell time
+      result = true;
+      if (prevScanCode == 0x63 && justInTime) {
+        mp3Module->stop();
+        result = false;
+        uint8_t value = 0;
+        uint16_t sndIdx = 0;
+        uint16_t div = 0;
+        
+        for (uint8_t i = 0; i < 3; i++) {
+          switch (i) {
+            case 0: div = 100; break;
+            case 1: div = 10; break;
+            case 2: div = 1; break;
+          }
+          value = (averageSpellTime / div) % 10;
+#ifdef  __SERIAL_DEBUG__
+          Serial.print(F("value="));
+          Serial.println(value);
+#endif
+          playNumber(value);
+        }
+      }
+      break;
 
     case 0x13:
       result = true;
@@ -536,23 +599,7 @@ void Chewin::processScanCode(char scanCode, unsigned long scanTime=millis()) {
           Serial.print(F("value="));
           Serial.println(value);
 #endif
-          switch (value) {
-            case 0: sndIdx = SND_NO_ZERO; break;
-            case 1: sndIdx = SND_NO_ONE; break;
-            case 2: sndIdx = SND_NO_TWO; break;
-            case 3: sndIdx = SND_NO_THREE; break;
-            case 4: sndIdx = SND_NO_FOUR; break;
-            case 5: sndIdx = SND_NO_FIVE; break;
-            case 6: sndIdx = SND_NO_SIX; break;
-            case 7: sndIdx = SND_NO_SEVEN; break;
-            case 8: sndIdx = SND_NO_EIGHT; break;
-            case 9: sndIdx = SND_NO_NINE; break;
-          }
-#ifdef  __SERIAL_DEBUG__
-          Serial.print(F("sndIdx="));
-          Serial.println(sndIdx);
-#endif
-          mp3Module->playAndWait(sndIdx);
+          playNumber(value);
         }
       }
       break;
@@ -712,8 +759,10 @@ void Chewin::processKeyCode(char key, char scanCode) {
   // End of play key sound
 
   // Collect keys to form spellBuffer
-  if ((spellBufferIdx >= spellBufferSize))
+  if ((spellBufferIdx >= spellBufferSize)) {
+    mp3Module->play(SND_SENTENCE_BUFFER_FULL_WARNING);
     return;
+  }
 
 #ifdef __SERIAL_DEBUG_XX__
   Serial.print(F("scanCode=0x"));
@@ -734,9 +783,10 @@ void Chewin::processKeyCode(char key, char scanCode) {
       spellBuffer[spellBufferIdx++] = key;
       spellBuffer[spellBufferIdx] = 0;
       prevKeyType = chewin->keyType;
+      spellBeginTime = millis();
       break;
 
-    case KEY_TYPE_F:
+    case KEY_TYPE_F:  // [ ˊˇˋ˙=]
       if (key != TONE_KEY1) {
         if (key == SILENCE_KEY) { // silence processing
 
@@ -757,10 +807,12 @@ void Chewin::processKeyCode(char key, char scanCode) {
         spellBuffer[spellBufferIdx++] = key;
         spellBuffer[spellBufferIdx] = 0;
         prevKeyType = chewin->keyType;
+        spellBeginTime = millis();
       } else {
         if (prevKeyType == chewin->keyType) {
           spellBuffer[spellBufferIdx - 1] = key;
           prevKeyType = chewin->keyType;
+          spellBeginTime = millis();
         } else {
           if (prevKeyType == KEY_TYPE_D && chewin->keyType == KEY_TYPE_C) {
             mp3Module->play(SND_SPELL_ILLEGAL);
@@ -810,7 +862,39 @@ void Chewin::processKeyCode(char key, char scanCode) {
 #endif
 
   if (sndIdx != 0xFFFF) { // If spellList has this spell
-    mp3Module->play(sndIdx);
+    mp3Module->playAndWait(sndIdx);
+    uint8_t spellTime = (uint8_t) ((millis() - spellBeginTime)/1000);
+    uint8_t prevAverageSpellTime = averageSpellTime;
+
+#ifdef __SERIAL_DEBUG_XX__
+  Serial.print(F("spellTime="));
+  Serial.println(spellTime);
+  Serial.print(F("averageSpellTime="));
+  Serial.println(averageSpellTime);
+#endif
+
+    if (averageSpellTime == 0) {
+      averageSpellTime = spellTime;
+      romUpdateRequestTime = millis();
+      romUpdateRequest = true;
+    } else {
+      averageSpellTime = (averageSpellTime + spellTime)/2;
+      if (averageSpellTime != prevAverageSpellTime) {
+        romUpdateRequestTime = millis();
+        romUpdateRequest = true;
+      }
+      if (spellTime < prevAverageSpellTime) {
+#ifdef __SERIAL_DEBUG_XX__
+  Serial.println(F("Average spell speed grows UP!"));
+  Serial.print(prevAverageSpellTime);
+  Serial.print(F(" --> "));
+  Serial.println(averageSpellTime);
+#endif
+        if (spellSpeedupSoundEnabled) {
+          mp3Module->play(SND_INPUT_SPEED_GROWUP);
+        }
+      }
+    }
 
     if (sentenceBufferIdx < sentenceBufferSize) {
       if (key == SILENCE_KEY) {
@@ -898,7 +982,9 @@ void Chewin::updateEEprom() {
   header.twiceMuteEnabled = twiceMuteEnabled;
   header.playSilenceAsSound = playSilenceAsSound;
   header.toneFixEnabled = toneFixEnabled;
-  header.checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked + header.twiceMuteEnabled + header.playSilenceAsSound + header.toneFixEnabled)) + 1; // 2's Complement
+  header.averageSpellTime = averageSpellTime;
+  header.spellSpeedupSoundEnabled = spellSpeedupSoundEnabled;
+  header.checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked + header.twiceMuteEnabled + header.playSilenceAsSound + header.toneFixEnabled + header.averageSpellTime + header.spellSpeedupSoundEnabled)) + 1; // 2's Complement
   EEPROM.put(0, header);
   delay(100);
 
@@ -913,7 +999,7 @@ void Chewin::restoreFromEEprom() {
   eepromHeader header;
 
   EEPROM.get(0, header);
-  checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked + header.twiceMuteEnabled + header.playSilenceAsSound + header.toneFixEnabled)) + 1; // 2's Complement
+  checkSum = (~(header.volume + header.mode + header.memoKeyBlocked + header.volumeKeyLocked + header.twiceMuteEnabled + header.playSilenceAsSound + header.toneFixEnabled + header.averageSpellTime + header.spellSpeedupSoundEnabled)) + 1; // 2's Complement
   if (checkSum == header.checkSum) {
     currVolume = header.volume;
     currMode = header.mode;
@@ -922,6 +1008,8 @@ void Chewin::restoreFromEEprom() {
     twiceMuteEnabled = header.twiceMuteEnabled;
     playSilenceAsSound = header.playSilenceAsSound;
     toneFixEnabled = header.toneFixEnabled;
+    averageSpellTime = header.averageSpellTime;
+    spellSpeedupSoundEnabled = header.spellSpeedupSoundEnabled;
 #ifdef __SERIAL_DEBUG_XX__
     Serial.println(F("\nresEEprom(): Done!"));
     Serial.println(currVolume);
@@ -942,6 +1030,7 @@ void Chewin::doHousekeeping() {
   uint16_t vbat = 0;
   unsigned long currTime = millis();
   static unsigned long prevCheckVccTime;
+  static unsigned long prevCheckVolumeTime;
 
   if (romUpdateRequest == true) {
     if ((currTime - romUpdateRequestTime) > romUpdateRequestDelay) {
@@ -954,6 +1043,10 @@ void Chewin::doHousekeeping() {
 
     if (vbat < batteryLowThreshold) mp3Module->playAndWait(SND_IT_NEEDS_CHARGING);
     prevCheckVccTime = currTime;
+  }
+  
+  if ((currTime - prevCheckVolumeTime) > checkVolumePeriod) {
+  	mp3Module->volume(currVolume);
   }
 }
 
