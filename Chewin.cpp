@@ -92,6 +92,7 @@ void Chewin::playNumber(uint8_t number) {
     case 7: sndIdx = SND_NO_SEVEN; break;
     case 8: sndIdx = SND_NO_EIGHT; break;
     case 9: sndIdx = SND_NO_NINE; break;
+    case 10: sndIdx = SND_NO_TEN; break;
   }
 #ifdef  __SERIAL_DEBUG__
   Serial.print(F("sndIdx="));
@@ -556,20 +557,58 @@ void Chewin::processScanCode(char scanCode, unsigned long scanTime=millis()) {
         uint8_t value = 0;
         uint16_t sndIdx = 0;
         uint16_t div = 0;
-        
-        for (uint8_t i = 0; i < 3; i++) {
+        bool leadZero = true;
+
+#ifdef  __SERIAL_DEBUG__
+        Serial.print(F("averageSpellTime="));
+        Serial.println(averageSpellTime);
+#endif
+        mp3Module->playAndWait(SND_AVERAGE_SPELL_TIME);
+        for (uint8_t i = 0; i < 4; i++) {
           switch (i) {
-            case 0: div = 100; break;
-            case 1: div = 10; break;
-            case 2: div = 1; break;
+            case 0: div = 1000; break;
+            case 1: div = 100; break;
+            case 2: div = 10; break;
+            case 3: div = 1; break;
           }
           value = (averageSpellTime / div) % 10;
+          leadZero = (leadZero && (value == 0)) ? true : false;
 #ifdef  __SERIAL_DEBUG__
           Serial.print(F("value="));
-          Serial.println(value);
+          Serial.print(value);
+          Serial.print(F(" leadZero="));
+          Serial.println(leadZero);
 #endif
-          playNumber(value);
+          leadZero = (leadZero && (value == 0)) ? true : false;
+          if (leadZero == false) {
+            switch (i) {
+              case 0: playNumber(value);
+                mp3Module->playAndWait(90);
+                break;
+
+              case 1:
+                switch (value) {
+                  case 1: playNumber(10); break;
+                  case 2 ... 9:
+                    playNumber(value);
+                    delay(100);
+                    playNumber(10); 
+                    break;
+                }
+                break;
+
+              case 2:
+                if (value!=0) playNumber(value);
+                break;
+
+              case 3:
+                mp3Module->playAndWait(SND_DOT);
+                playNumber(value);
+                break;
+            }
+          }
         }
+        mp3Module->playAndWait(SND_SECOND);
       }
       break;
 
@@ -863,8 +902,11 @@ void Chewin::processKeyCode(char key, char scanCode) {
 
   if (sndIdx != 0xFFFF) { // If spellList has this spell
     mp3Module->playAndWait(sndIdx);
-    uint8_t spellTime = (uint8_t) ((millis() - spellBeginTime)/1000);
-    uint8_t prevAverageSpellTime = averageSpellTime;
+    // uint16_t spellTime -- min 0, max 65535 ( which means 65535 ms)
+    uint16_t spellTime = (uint16_t) ((millis() - spellBeginTime)/100);
+    // if 65535ms/1000 means max 65.535s)
+    // if 65535ms/100 means max 655.35 0.1s)
+    uint16_t prevAverageSpellTime = averageSpellTime;
 
 #ifdef __SERIAL_DEBUG_XX__
   Serial.print(F("spellTime="));
@@ -1137,6 +1179,9 @@ uint16_t Chewin::getSpellSoundIdx(char * keys, char firstScanCode) {
   uint8_t row;
   uint8_t col;
   uint16_t shortCut;
+  unsigned long beginTime = millis();
+  unsigned long useTime = 0;
+
   row = (firstScanCode & 0xF0) >> 4;
   col = (firstScanCode & 0x0F);
 
@@ -1170,6 +1215,13 @@ uint16_t Chewin::getSpellSoundIdx(char * keys, char firstScanCode) {
     if (strcmp(keys, spellLookupBuffer.keys) == 0) {
 #ifdef __SERIAL_DEBUG_DEEP__
       Serial.print(F(" <-- Match!!\n"));
+#endif
+
+#ifdef __SERIAL_DEBUG_XX__
+      useTime = millis() - beginTime;
+      Serial.print(F("Time used for searching: "));
+      Serial.print(useTime);
+      Serial.println(F("ms"));
 #endif
       return (i + chewinStartNumber);
     }

@@ -65,15 +65,15 @@
 #define SND_CLICK 23
 #define SND_DRIP 24
 #define SND_GLASS 25
-#define SND_MESSAGE 26
-#define SND_BUTTON_PRESSED 27
-#define SND_DIALOG_INFO 28
+#define SND_DOT 26
+#define SND_SECOND 27
+#define SND_AVERAGE_SPELL_TIME 28
 #define SND_SYSTEM_READY 29
 #define SND_LOGOUT 30
+#define SND_SENTENCE_BUFFER_FULL_WARNING 30
 #define SND_WOOD_FISH 31
 #define SND_HAND_DRUM 32
 #define SND_BOBBLE 33
-#define SND_SENTENCE_BUFFER_FULL_WARNING 30
 #define SND_INPUT_SPEED_GROWUP 35
 
 #define TONE_KEY1 ' '
@@ -143,7 +143,7 @@ typedef struct {
   bool twiceMuteEnabled;
   uint8_t playSilenceAsSound;
   bool toneFixEnabled;
-  uint8_t averageSpellTime;
+  uint16_t averageSpellTime;
   bool spellSpeedupSoundEnabled;
   uint8_t checkSum;
 } eepromHeader;
@@ -188,7 +188,7 @@ class Chewin {
   uint16_t memoSlotUpdateRequest = 0;
   unsigned long romUpdateRequestTime = 0;
   unsigned long spellBeginTime = 0;
-  uint8_t averageSpellTime = 0;
+  uint16_t averageSpellTime = 0;
   uint8_t currVolume = 0;
   uint8_t currMode = 0;
   
