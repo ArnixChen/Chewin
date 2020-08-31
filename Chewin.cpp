@@ -5,6 +5,7 @@
 //#define __SERIAL_DEBUG__
 //#define __SERIAL_DEBUG_XX__
 //#define __SERIAL_DEBUG_DEEP1__
+//#define __SERIAL_DEBUG_KEY_WHILE_PLAYING__
 
 uint16_t shortCutTableForSound[6][10] = {
   {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -60,6 +61,12 @@ bool Chewin::idleWorkerForMp3Module() {
     char result = keypadObj->getKey();
     if (result != NO_KEY) {
       _scanCodeWhileAudioPlaying = result;
+#ifdef __SERIAL_DEBUG__
+#ifdef __SERIAL_DEBUG_KEY_WHILE_PLAYING__
+      Serial.print(F("Scancode while Playing:"));
+      Serial.println(_scanCodeWhileAudioPlaying);
+#endif
+#endif
       return true;
     }
   }
@@ -297,8 +304,12 @@ void Chewin::playSentenceFrom(sentenceSrc src) {
   switch(src) {
     case SENTENCE_BUFFER:
       for (int i = 0; i < sentenceBufferIdx; i++) {
-        if (idleWorkerForMp3Module())
+        if (idleWorkerForMp3Module()) {
+#ifdef __SERIAL_DEBUG__
+          Serial.println(F("playSentenceFrom:return caused by idleWorker"));
+#endif
           return;
+        }
           
         if (toneFixEnabled == true) {
 #ifdef __SERIAL_DEBUG_DEEP1__
@@ -320,11 +331,19 @@ void Chewin::playSentenceFrom(sentenceSrc src) {
         }
 
         mp3Module->playAndWait(sndIdx);
-        if (_scanCodeWhileAudioPlaying != NO_KEY) return;
+        if (_scanCodeWhileAudioPlaying != NO_KEY) {
+#ifdef __SERIAL_DEBUG__
+          Serial.println(F("playSentenceFrom:return caused by scanCode while playing"));
+#endif
+          return;
+        }
       }
       break;
   
     case MEMO_SLOT:
+#ifdef __SERIAL_DEBUG__
+      Serial.println(F("playSentenceFrom:MEMO_SLOT "));
+#endif
       for (uint8_t i = 0; i < memoSlot.length; i++) {
         if (idleWorkerForMp3Module())
           return;
@@ -335,10 +354,19 @@ void Chewin::playSentenceFrom(sentenceSrc src) {
             sndIdx = SND_WOOD_FISH - 1 + playSilenceAsSound;
           }
         }
+#ifdef __SERIAL_DEBUG__
+        Serial.print(sndIdx);
+#endif
         mp3Module->playAndWait(sndIdx);
+#ifdef __SERIAL_DEBUG__
+        Serial.print(F(" "));
+#endif
         if (_scanCodeWhileAudioPlaying != NO_KEY)
           return;
       }
+#ifdef __SERIAL_DEBUG__
+        Serial.println();
+#endif
   }
 }
 
@@ -457,8 +485,8 @@ void Chewin::processScanCode(char scanCode, unsigned long scanTime=millis()) {
       break;
 
     case 0x66: // Play sentence buffer
-#ifdef __SERIAL_DEBUG__XX
-      Serial.print(F("\nPlay sentence buffer: "));
+#ifdef __SERIAL_DEBUG__
+      Serial.println(F("\nPlay sentence buffer:"));
 #endif
       playSentenceFrom(SENTENCE_BUFFER);
       break;
@@ -734,7 +762,11 @@ void Chewin::processScanCode(char scanCode, unsigned long scanTime=millis()) {
   static chewinMapEntry * chewin;
   chewin = getChewinMapEntry(scanCode);
   if (chewin != NULL) {
-    Serial.println(chewin->symbol);
+    Serial.print(F(" chewin=["));
+    Serial.print(chewin->symbol);
+    Serial.print(F("] scanCode=0x"));
+    Serial.print(scanCode, HEX);
+    Serial.print(" ");
   }
 #endif
   if (result == true)
@@ -787,10 +819,22 @@ void Chewin::processKeyCode(char key, char scanCode) {
         if (key == prevKey && spellBufferIdx > 0) {
 
         } else {
+#ifdef __SERIAL_DEBUG__
+        Serial.print(F(" play key sound="));
+        Serial.print(sndIdx);
+        Serial.print(F(" time="));
+        Serial.println(millis());
+#endif
           mp3Module->play(sndIdx);
           prevKey = key;
         }
       } else {
+#ifdef __SERIAL_DEBUG__
+        Serial.print(F(" play key sound="));
+        Serial.print(sndIdx);
+        Serial.print(F(" time="));
+        Serial.println(millis());
+#endif
         mp3Module->play(sndIdx);
       }
     }
@@ -879,8 +923,8 @@ void Chewin::processKeyCode(char key, char scanCode) {
 
   // When a chewin spell is completed!!
 #ifdef __SERIAL_DEBUG__
-  Serial.print(" ");
-  Serial.print(spellBuffer);
+  Serial.print(" Spell= ");
+  Serial.println(spellBuffer);
 #endif
 
 #ifdef __SERIAL_DEBUG_XX__
@@ -901,6 +945,13 @@ void Chewin::processKeyCode(char key, char scanCode) {
 #endif
 
   if (sndIdx != 0xFFFF) { // If spellList has this spell
+#ifdef __SERIAL_DEBUG__
+    Serial.print(F("playSpell sndIdx="));
+    Serial.print(sndIdx);
+    Serial.print(" ");
+    Serial.print(sndIdx);
+    Serial.println(F(".mp3"));
+#endif
     mp3Module->playAndWait(sndIdx);
     // uint16_t spellTime -- min 0, max 65535 ( which means 65535 ms)
     uint16_t spellTime = (uint16_t) ((millis() - spellBeginTime)/100);
@@ -951,11 +1002,6 @@ void Chewin::processKeyCode(char key, char scanCode) {
       sentenceBufferIdx++;
     }
 
-#ifdef __SERIAL_DEBUG__
-    Serial.print(" ");
-    Serial.print(sndIdx);
-    Serial.println(F(".mp3"));
-#endif
   } else { // If spellList has no such spell
     if (spellBufferIdx > 1)
       mp3Module->play(SND_SPELL_SOUND_NOT_PREPARED);
@@ -1086,10 +1132,33 @@ void Chewin::doHousekeeping() {
     if (vbat < batteryLowThreshold) mp3Module->playAndWait(SND_IT_NEEDS_CHARGING);
     prevCheckVccTime = currTime;
   }
-  
+
   if ((currTime - prevCheckVolumeTime) > checkVolumePeriod) {
-  	mp3Module->volume(currVolume);
+    prevCheckVolumeTime = currTime;
+    return;
+#ifdef __SERIAL_DEBUG_XX__
+    Serial.print(F("Before getVolume()"));
+#endif
+    uint8_t realVolume = mp3Module->getVolume();
+
+#ifdef __SERIAL_DEBUG_XX__
+    Serial.println(F("Done getVolume()"));
+#endif
+    
+#ifdef __SERIAL_DEBUG_XX__
+    Serial.print(F("realVolume="));
+    Serial.print(realVolume);
+    Serial.print(F(" currVolume="));
+    Serial.println(currVolume);
+#endif
+    if (realVolume > currVolume) {
+#ifdef __SERIAL_DEBUG_XX__
+      Serial.println(F("Housekeeping turn down the volume"));
+#endif
+    	currVolume = mp3Module->volumeDown();
+    }
   }
+
 }
 
 void Chewin::updateShortCutTable() {
